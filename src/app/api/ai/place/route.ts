@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server'
+import type { Part } from '@google/generative-ai'
 import { getGeminiModel, dataUrlToInlineData, describePlacement, extractImageFromResponse } from '@/lib/gemini'
 
 export async function POST(req: NextRequest) {
@@ -41,7 +42,7 @@ ${placement}
 Now add the ${furnitureName} following all instructions above.`
 
     const model = getGeminiModel()
-    const parts: object[] = [
+    const parts: Part[] = [
       { inlineData: { mimeType, data } },
       { text: prompt },
     ]
