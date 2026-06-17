@@ -36,6 +36,12 @@ yarn-error.log*
 # vercel
 .vercel
 
+# claude dev
+.claude/
+
+# setup scripts (contain credentials)
+setup-db.mjs
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

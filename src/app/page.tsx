@@ -1,65 +1,96 @@
-import Image from "next/image";
+import Link from 'next/link'
+import { ArrowRight, Layers, Replace, Sparkles } from 'lucide-react'
 
-export default function Home() {
+export default function LandingPage() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <div className="min-h-screen flex flex-col" style={{ background: 'var(--background)' }}>
+      {/* Hero */}
+      <main className="flex-1 flex flex-col items-center justify-center px-6 py-24 text-center">
+        <div className="animate-fade-up">
+          <span
+            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium mb-6"
+            style={{ background: '#F5EFE6', color: 'var(--accent-dark)', border: '1px solid #E8D9C4' }}
+          >
+            <Sparkles size={12} />
+            Yapay Zeka Destekli Tasarım
+          </span>
+
+          <h1
+            className="text-5xl md:text-6xl font-bold tracking-tight mb-6 leading-tight"
+            style={{ color: 'var(--foreground)' }}
+          >
+            Mobilyanızı Satın Almadan<br />
+            <span style={{ color: 'var(--accent)' }}>Odanızda Görün</span>
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+
+          <p className="text-lg md:text-xl max-w-xl mx-auto mb-10" style={{ color: 'var(--muted-fg)' }}>
+            Boş odanıza mobilya ekleyin ya da mevcut mobilyanızın yerine başka birini deneyin.
+            Yapay zeka, seçtiğiniz mobilyayı doğru açı, renk ve ışıkla yerleştirir.
           </p>
+
+          <Link
+            href="/app"
+            className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl text-white font-semibold text-base transition-all hover:scale-105 active:scale-95 shadow-lg"
+            style={{ background: 'linear-gradient(135deg, #C4A882, #9A7E5C)', boxShadow: '0 8px 24px rgba(196,168,130,0.35)' }}
+          >
+            Deneyimi Başlat
+            <ArrowRight size={18} />
+          </Link>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+
+        {/* Feature cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-24 max-w-3xl w-full animate-fade-up" style={{ animationDelay: '0.15s' }}>
+          <FeatureCard
+            icon={<Layers size={24} style={{ color: 'var(--accent)' }} />}
+            title="Mobilya Yerleştir"
+            description="Boş odanızın fotoğrafını yükleyin, mobilya listesinden seçin ve tıkladığınız noktaya AI yerleştirsin."
+          />
+          <FeatureCard
+            icon={<Replace size={24} style={{ color: 'var(--accent)' }} />}
+            title="Mobilya Değiştir"
+            description="Dolu odanızdaki bir mobilyaya tıklayın, yerine koymak istediğinizi seçin — AI sadece o mobilyayı değiştirir."
+          />
+        </div>
+
+        {/* Decorative grid */}
+        <div className="mt-20 grid grid-cols-3 gap-3 opacity-40 max-w-xs">
+          {Array.from({ length: 9 }).map((_, i) => (
+            <div
+              key={i}
+              className="rounded-xl aspect-square"
+              style={{ background: i % 2 === 0 ? '#E8D9C4' : '#F0E8DC', height: 64 }}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+          ))}
         </div>
       </main>
+
+      {/* Footer with hidden admin link */}
+      <footer className="py-6 text-center">
+        <p className="text-xs" style={{ color: '#D0CDC8' }}>
+          © 2025 Mobilya Görselleştirici
+          {' · '}
+          <Link
+            href="/admin/login"
+            className="hover:underline transition-colors"
+            style={{ color: '#D0CDC8' }}
+          >
+            ·
+          </Link>
+        </p>
+      </footer>
     </div>
-  );
+  )
+}
+
+function FeatureCard({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
+  return (
+    <div
+      className="p-6 rounded-2xl text-left"
+      style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+    >
+      <div className="mb-3">{icon}</div>
+      <h3 className="font-semibold text-base mb-1.5">{title}</h3>
+      <p className="text-sm leading-relaxed" style={{ color: 'var(--muted-fg)' }}>{description}</p>
+    </div>
+  )
 }
