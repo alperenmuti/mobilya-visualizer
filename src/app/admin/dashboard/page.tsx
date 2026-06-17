@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Package, ExternalLink, Layers, Replace } from 'lucide-react'
+import { Package, ExternalLink, Layers, Replace, Building2 } from 'lucide-react'
 
 export default function DashboardPage() {
   return (
@@ -7,10 +7,11 @@ export default function DashboardPage() {
       <h1 className="text-2xl font-bold mb-1">Genel Bakış</h1>
       <p className="text-sm mb-8" style={{ color: 'var(--muted-fg)' }}>Mobilya Görselleştirici yönetim paneli</p>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mb-8">
+        <StatCard icon={<Building2 size={20} style={{ color: 'var(--accent)' }} />} label="İşletmeler" value="Yönet" href="/admin/dashboard/tenants" />
         <StatCard icon={<Package size={20} style={{ color: 'var(--accent)' }} />} label="Mobilya Kataloğu" value="Yönet" href="/admin/dashboard/furniture" />
-        <StatCard icon={<Layers size={20} style={{ color: 'var(--accent)' }} />} label="Yerleştirme Aracı" value="Aç" href="/app/place" external />
-        <StatCard icon={<Replace size={20} style={{ color: 'var(--accent)' }} />} label="Değiştirme Aracı" value="Aç" href="/app/replace" external />
+        <StatCard icon={<Layers size={20} style={{ color: 'var(--accent)' }} />} label="Yerleştirme Aracı" value="Aç" href="/app" external />
+        <StatCard icon={<Replace size={20} style={{ color: 'var(--accent)' }} />} label="Değiştirme Aracı" value="Aç" href="/app" external />
       </div>
 
       <div
@@ -20,10 +21,10 @@ export default function DashboardPage() {
         <h2 className="font-semibold mb-3">Hızlı Başlangıç</h2>
         <ol className="space-y-2">
           {[
-            'Mobilya Kataloğu sayfasına gidin',
-            'Ürün URL\'si yapıştırın ve "Ürün Bilgisi Getir" butonuna tıklayın',
-            'Ad, kategori ve fiyatı kontrol edip kaydedin',
-            'Kullanıcılar bu ürünleri uygulamada görebilecek',
+            'İşletmeler sayfasından yeni işletme oluşturun (örn. "İstikbal")',
+            'Mobilya Kataloğu\'nda o işletmeyi seçip ürün ekleyin',
+            'İşletmenin bağlantısını kopyalayıp müşterinize gönderin',
+            'Müşteri kendi ürün kataloğuyla uygulamayı kullanır',
           ].map((step, i) => (
             <li key={i} className="flex items-start gap-2.5 text-sm">
               <span

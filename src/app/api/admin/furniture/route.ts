@@ -6,19 +6,23 @@ async function verifyAdmin() {
   return !!cookieStore.get('admin_session')?.value
 }
 
-export async function GET(_req: NextRequest) {
+export async function GET(req: NextRequest) {
   if (!await verifyAdmin()) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL.startsWith('your_')) {
     return Response.json({ items: [] })
   }
 
+  const tenantId = req.nextUrl.searchParams.get('tenant_id')
+
   const { createClient } = await import('@supabase/supabase-js')
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
-  const { data, error } = await supabase.from('furniture_items').select('*').order('created_at', { ascending: false })
+  let query = supabase.from('furniture_items').select('*').order('created_at', { ascending: false })
+  if (tenantId) query = query.eq('tenant_id', tenantId)
+  const { data, error } = await query
   if (error) return Response.json({ error: error.message }, { status: 500 })
   return Response.json({ items: data })
 }
@@ -27,12 +31,13 @@ export async function POST(req: NextRequest) {
   if (!await verifyAdmin()) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json()
-  const { name, image_url, product_url, category, price, description } = body
+  const { name, image_url, product_url, category, price, description, tenant_id } = body
 
   if (!name || !image_url) return Response.json({ error: 'Ad ve görsel URL gerekli' }, { status: 400 })
+  if (!tenant_id) return Response.json({ error: 'İşletme seçilmedi' }, { status: 400 })
 
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL.startsWith('your_')) {
-    return Response.json({ item: { id: Date.now().toString(), name, image_url, product_url, category, price, description, created_at: new Date().toISOString() } })
+    return Response.json({ item: { id: Date.now().toString(), name, image_url, product_url, category, price, description, tenant_id, created_at: new Date().toISOString() } })
   }
 
   const { createClient } = await import('@supabase/supabase-js')
@@ -42,7 +47,7 @@ export async function POST(req: NextRequest) {
   )
   const { data, error } = await supabase
     .from('furniture_items')
-    .insert([{ name, image_url, product_url, category, price, description }])
+    .insert([{ name, image_url, product_url, category, price, description, tenant_id }])
     .select()
     .single()
 

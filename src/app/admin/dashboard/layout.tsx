@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { LayoutDashboard, Package, LogOut } from 'lucide-react'
+import { LayoutDashboard, Package, LogOut, Building2 } from 'lucide-react'
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const cookieStore = await cookies()
@@ -26,6 +26,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
         <nav className="flex-1 p-3 space-y-1">
           <NavLink href="/admin/dashboard" icon={<LayoutDashboard size={15} />} label="Genel Bakış" />
+          <NavLink href="/admin/dashboard/tenants" icon={<Building2 size={15} />} label="İşletmeler" />
           <NavLink href="/admin/dashboard/furniture" icon={<Package size={15} />} label="Mobilya Kataloğu" />
         </nav>
 

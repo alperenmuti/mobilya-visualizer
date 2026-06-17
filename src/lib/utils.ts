@@ -48,3 +48,12 @@ export function formatPrice(price?: string): string {
   if (!price) return ''
   return price.startsWith('₺') || price.startsWith('$') ? price : `${price} ₺`
 }
+
+export function slugify(text: string): string {
+  return text
+    .replace(/[Ğğ]/g, 'g').replace(/[Üü]/g, 'u').replace(/[Şş]/g, 's')
+    .replace(/[İ]/g, 'i').replace(/[ı]/g, 'i').replace(/[Öö]/g, 'o').replace(/[Çç]/g, 'c')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}

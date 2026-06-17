@@ -7,6 +7,7 @@ import FurnitureList from '@/components/FurnitureList'
 import type { FurnitureItem, ClickPoint, AIJobStatus } from '@/lib/types'
 
 export default function PlaceFurniturePage() {
+  const [brand, setBrand] = useState<string | null>(null)
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null)
   const [clickPoint, setClickPoint] = useState<ClickPoint | null>(null)
   const [selectedFurniture, setSelectedFurniture] = useState<FurnitureItem | null>(null)
@@ -15,11 +16,18 @@ export default function PlaceFurniturePage() {
   const [job, setJob] = useState<AIJobStatus>({ status: 'idle' })
 
   useEffect(() => {
-    fetch('/api/furniture')
+    const params = new URLSearchParams(window.location.search)
+    setBrand(params.get('brand') ?? '')
+  }, [])
+
+  useEffect(() => {
+    if (brand === null) return
+    const url = brand ? `/api/furniture?tenant=${brand}` : '/api/furniture'
+    fetch(url)
       .then(r => r.json())
       .then(d => { setFurniture(d.items ?? []); setFurnitureLoading(false) })
       .catch(() => setFurnitureLoading(false))
-  }, [])
+  }, [brand])
 
   const handleImageLoad = useCallback((_file: File, dataUrl: string) => {
     setImageDataUrl(dataUrl)
@@ -68,7 +76,7 @@ export default function PlaceFurniturePage() {
         className="flex items-center gap-3 px-4 py-3 flex-shrink-0"
         style={{ borderBottom: '1px solid var(--border)', background: 'var(--card)' }}
       >
-        <Link href="/app" className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
+        <Link href={brand ? `/app?brand=${brand}` : '/app'} className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
           <ArrowLeft size={16} style={{ color: 'var(--muted-fg)' }} />
         </Link>
         <div>
