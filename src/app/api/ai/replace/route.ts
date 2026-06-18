@@ -1,7 +1,6 @@
 import { NextRequest } from 'next/server'
 import type { Part } from '@google/generative-ai'
 import { getGeminiModel, dataUrlToInlineData, describePlacement, extractImageFromResponse } from '@/lib/gemini'
-import { runFluxKontext } from '@/lib/fal'
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,60 +13,14 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: 'Eksik parametreler' }, { status: 400 })
     }
 
-    const cx = clickX ?? 0.5
-    const cy = clickY ?? 0.5
-    const pctX = Math.round(cx * 100)
-    const pctY = Math.round(cy * 100)
-
-    // ── fal.ai — FLUX Kontext Pro (primary) ──────────────────────────
-    if (process.env.FAL_KEY) {
-      // A visual target marker is drawn at the click position so the model
-      // can see exactly which furniture piece to replace.
-      const prompt = [
-        `Replace the furniture piece that is at the yellow circle marker in this image with a photorealistic ${furnitureName}.`,
-        `The yellow circle with the red center marks the exact furniture item to remove and replace.`,
-        `Place the new ${furnitureName} in exactly the same position, same scale, and same orientation as the item that was at the marker.`,
-        `The new furniture must rest firmly on the floor — all feet in contact with the floor, zero floating.`,
-        `If the original was against a wall, the new furniture's back must be flush against the same wall with zero gap.`,
-        `Seamlessly reconstruct any floor or wall surface that was hidden behind the original item.`,
-        `Remove the yellow circle marker in the final output.`,
-        `Do not change anything else — all other furniture, walls, floor, ceiling, windows, and accessories must remain completely unchanged.`,
-      ].join(' ')
-
-      const promptFallback = [
-        `Replace the furniture item at approximately (${pctX}%, ${pctY}%) in this image with a photorealistic ${furnitureName}.`,
-        `Same position, same scale, same orientation as the original.`,
-        `New furniture must rest firmly on the floor — zero floating.`,
-        `If the original was against a wall, keep the new one flush against the same wall.`,
-        `Seamlessly reconstruct any floor or wall hidden behind the original.`,
-        `Do not change anything else in the room.`,
-      ].join(' ')
-
-      try {
-        const resultUrl = await runFluxKontext({
-          imageDataUrl,
-          prompt,
-          promptFallback,
-          marker: { x: cx, y: cy },
-        })
-        return Response.json({ resultUrl })
-      } catch (falErr: any) {
-        const isAuth = falErr?.status === 401 || /unauthorized/i.test(falErr?.message ?? '')
-        console.error(`fal.ai error (${isAuth ? 'auth' : 'other'}), falling back to Gemini:`, falErr?.message || falErr)
-        if (!process.env.GEMINI_KEY) {
-          const msg = isAuth
-            ? 'fal.ai API anahtarı geçersiz. Lütfen Vercel ortam değişkenlerindeki FAL_KEY değerini kontrol edin.'
-            : (falErr?.message || 'fal.ai görüntü üretemedi')
-          throw new Error(msg)
-        }
-      }
-    }
-
-    // ── Gemini (fallback) ─────────────────────────────────────────────
     if (!process.env.GEMINI_KEY) {
       return Response.json({ resultUrl: imageDataUrl, demo: true })
     }
 
+    const cx = clickX ?? 0.5
+    const cy = clickY ?? 0.5
+    const pctX = Math.round(cx * 100)
+    const pctY = Math.round(cy * 100)
     const placement = describePlacement(cx, cy, furnitureName)
     const { mimeType, data } = dataUrlToInlineData(imageDataUrl)
 

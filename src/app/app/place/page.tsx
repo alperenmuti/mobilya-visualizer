@@ -6,67 +6,6 @@ import RoomCanvas from '@/components/RoomCanvas'
 import FurnitureList from '@/components/FurnitureList'
 import type { FurnitureItem, ClickPoint, AIJobStatus } from '@/lib/types'
 
-/** Returns furniture area fractions for mask sizing */
-function furnitureFracs(name: string): { wFrac: number; hFrac: number } {
-  const n = name.toLowerCase()
-  if (/kanepe|sofa|couch|chester/.test(n)) return { wFrac: 0.40, hFrac: 0.32 }
-  if (/berjer|bergere/.test(n))           return { wFrac: 0.22, hFrac: 0.28 }
-  if (/koltuk|armchair|lounge/.test(n))   return { wFrac: 0.26, hFrac: 0.30 }
-  if (/sandalye|chair/.test(n))           return { wFrac: 0.16, hFrac: 0.24 }
-  if (/yatak|bed/.test(n))                return { wFrac: 0.48, hFrac: 0.36 }
-  if (/dolap|wardrobe|closet/.test(n))    return { wFrac: 0.22, hFrac: 0.55 }
-  if (/kitaplık|bookcase|shelf/.test(n))  return { wFrac: 0.22, hFrac: 0.50 }
-  if (/sehpa|coffee table/.test(n))       return { wFrac: 0.28, hFrac: 0.14 }
-  if (/yemek masası|dining/.test(n))      return { wFrac: 0.36, hFrac: 0.20 }
-  if (/masa|desk|table/.test(n))          return { wFrac: 0.30, hFrac: 0.20 }
-  return { wFrac: 0.30, hFrac: 0.30 }
-}
-
-/**
- * Draws a black+white inpainting mask using browser Canvas.
- * White ellipse = where FLUX Fill places furniture (grows upward from click).
- * No server-side native deps needed.
- */
-function generateMask(
-  imageDataUrl: string,
-  cx: number, cy: number,
-  furnitureName: string,
-): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const img = new Image()
-    img.onload = () => {
-      const canvas = document.createElement('canvas')
-      canvas.width  = img.naturalWidth
-      canvas.height = img.naturalHeight
-      const ctx = canvas.getContext('2d')!
-
-      ctx.fillStyle = '#000'
-      ctx.fillRect(0, 0, canvas.width, canvas.height)
-
-      const { wFrac, hFrac } = furnitureFracs(furnitureName)
-      const fw = canvas.width  * wFrac
-      const fh = canvas.height * hFrac
-      const mx = cx * canvas.width
-      const my = cy * canvas.height
-
-      // Soft feathered edge via layered semi-transparent ellipses
-      for (let i = 5; i >= 0; i--) {
-        const scale = 1 + i * 0.06
-        ctx.globalAlpha = i === 0 ? 1 : 0.18
-        ctx.fillStyle = i === 0 ? '#fff' : '#aaa'
-        ctx.beginPath()
-        ctx.ellipse(mx, my - fh / 2, (fw / 2) * scale, (fh / 2) * scale, 0, 0, Math.PI * 2)
-        ctx.fill()
-      }
-      ctx.globalAlpha = 1
-
-      resolve(canvas.toDataURL('image/jpeg', 0.92))
-    }
-    img.onerror = reject
-    img.src = imageDataUrl
-  })
-}
-
 export default function PlaceFurniturePage() {
   const [brand, setBrand] = useState<string | null>(null)
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null)
@@ -103,20 +42,11 @@ export default function PlaceFurniturePage() {
     setJob({ status: 'processing', message: 'AI mobilyayı yerleştiriyor...' })
 
     try {
-      // Generate inpainting mask client-side (no server-side native deps needed)
-      let maskDataUrl: string | undefined
-      try {
-        maskDataUrl = await generateMask(imageDataUrl, clickPoint.x, clickPoint.y, selectedFurniture.name)
-      } catch (e) {
-        console.warn('Mask generation failed, proceeding without mask:', e)
-      }
-
       const res = await fetch('/api/ai/place', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           imageDataUrl,
-          maskDataUrl,
           clickX: clickPoint.x,
           clickY: clickPoint.y,
           furnitureName: selectedFurniture.name,
