@@ -34,10 +34,20 @@ export async function POST(req: NextRequest) {
         `Do not change anything else — walls, floor, ceiling, windows, doors, and all existing objects remain pixel-perfect identical.`,
       ].join(' ')
 
+      // Fallback prompt (no visual marker available): use wall zone description only
+      const promptFallback = [
+        `Add a photorealistic ${furnitureName} to this room.`,
+        wallNote,
+        `The furniture rests firmly on the floor with all feet in contact — zero floating.`,
+        `Perspective and scale must match the room. Apply natural shadows and lighting.`,
+        `Do not change anything else in the room.`,
+      ].join(' ')
+
       try {
         const resultUrl = await runFluxKontext({
           imageDataUrl,
           prompt,
+          promptFallback,
           marker: { x: cx, y: cy },
         })
         return Response.json({ resultUrl })

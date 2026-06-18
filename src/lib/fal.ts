@@ -1,5 +1,4 @@
 import { fal } from '@fal-ai/client'
-import sharp from 'sharp'
 
 let _configured = false
 
@@ -42,6 +41,8 @@ export function wallInstructionForFlux(x: number, y: number): string {
  * with four crosshair lines so it is clearly a "place here" indicator.
  */
 async function drawMarker(imageDataUrl: string, cx: number, cy: number): Promise<string> {
+  const { default: sharp } = await import('sharp')
+
   const [, base64] = imageDataUrl.split(',')
   const buffer = Buffer.from(base64, 'base64')
 
@@ -92,15 +93,28 @@ interface FluxImageOutput {
  */
 export async function runFluxKontext(params: {
   imageDataUrl: string
+  /** Prompt used when the visual marker was successfully drawn on the image. */
   prompt: string
+  /** Fallback prompt used when marker drawing fails (no yellow circle in image). */
+  promptFallback?: string
   marker?: { x: number; y: number }
 }): Promise<string> {
   configure()
 
   // Annotate with visual placement marker (greatly improves spatial accuracy)
-  const sourceDataUrl = params.marker
-    ? await drawMarker(params.imageDataUrl, params.marker.x, params.marker.y)
-    : params.imageDataUrl
+  // If Sharp fails for any reason, fall back to the original image without annotation
+  let sourceDataUrl = params.imageDataUrl
+  let markerDrawn = false
+  if (params.marker) {
+    try {
+      sourceDataUrl = await drawMarker(params.imageDataUrl, params.marker.x, params.marker.y)
+      markerDrawn = true
+    } catch (annotateErr) {
+      console.warn('drawMarker failed, sending unannotated image:', annotateErr)
+    }
+  }
+
+  const activePrompt = (!markerDrawn && params.promptFallback) ? params.promptFallback : params.prompt
 
   // Convert data URL → Blob and upload to fal.ai CDN
   const [, base64] = sourceDataUrl.split(',')
@@ -111,7 +125,7 @@ export async function runFluxKontext(params: {
   // Run FLUX Kontext Pro
   const result = await fal.subscribe('fal-ai/flux-pro/kontext', {
     input: {
-      prompt: params.prompt,
+      prompt: activePrompt,
       image_url: imageUrl,
       guidance_scale: 5,
       safety_tolerance: '3',

@@ -34,10 +34,20 @@ export async function POST(req: NextRequest) {
         `Do not change anything else — all other furniture, walls, floor, ceiling, windows, and accessories must remain completely unchanged.`,
       ].join(' ')
 
+      const promptFallback = [
+        `Replace the furniture item at approximately (${pctX}%, ${pctY}%) in this image with a photorealistic ${furnitureName}.`,
+        `Same position, same scale, same orientation as the original.`,
+        `New furniture must rest firmly on the floor — zero floating.`,
+        `If the original was against a wall, keep the new one flush against the same wall.`,
+        `Seamlessly reconstruct any floor or wall hidden behind the original.`,
+        `Do not change anything else in the room.`,
+      ].join(' ')
+
       try {
         const resultUrl = await runFluxKontext({
           imageDataUrl,
           prompt,
+          promptFallback,
           marker: { x: cx, y: cy },
         })
         return Response.json({ resultUrl })
