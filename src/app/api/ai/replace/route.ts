@@ -22,36 +22,55 @@ export async function POST(req: NextRequest) {
     const placement = describePlacement(clickX ?? 0.5, clickY ?? 0.5, furnitureName)
     const { mimeType, data } = dataUrlToInlineData(imageDataUrl)
 
-    const prompt = `You are an expert interior design visualization AI specializing in furniture replacement compositing.
+    const prompt = `You are a professional photo compositor performing a precise surgical swap on a room photograph. Replace exactly one piece of furniture while keeping every other pixel identical.
 
-## TASK
-Replace one specific piece of furniture in this room photograph with a "${furnitureName}".
+━━━ STEP 1 — ANALYZE THE SCENE ━━━
+Before touching anything, mentally record:
+A) The floor surface — its perspective lines, material, and texture.
+B) The camera eye level — where is the horizon in this photo?
+C) The shadow direction and angle — which way do all shadows fall?
+D) The scale reference — door height (~200cm), ceiling height (~250cm).
 
-## TARGET IDENTIFICATION
-The user clicked at ${pctX}% from the left and ${pctY}% from the top of the image. Look at that exact coordinate and identify the furniture object located there (it could be a sofa, armchair, chair, table, cabinet, bed, rug, etc.). That is the ONLY item you must replace.
+━━━ STEP 2 — IDENTIFY THE TARGET ━━━
+The user clicked at (${pctX}%, ${pctY}%) in the image.
+Look at EXACTLY that pixel coordinate. Identify the furniture object that is at or nearest to that position. This is the ONLY item you will change. Name it mentally (sofa, chair, table, cabinet, etc.).
 
-## PLACEMENT OF REPLACEMENT
+━━━ STEP 3 — REMOVE THE TARGET CLEANLY ━━━
+Erase the identified furniture completely.
+Fill its former space with the background that logically belongs there:
+• Floor area below it → reconstruct the floor texture matching the surrounding floor exactly (same color, same perspective, same material grain/pattern).
+• Wall area behind it → reconstruct the wall seamlessly.
+The reconstruction must be invisible — as if the original furniture was never there.
+
+━━━ STEP 4 — PLACE THE REPLACEMENT ━━━
 ${placement}
 
-## REPLACEMENT PROCESS — follow this exact order:
-**STEP 1 — REMOVAL:** Remove the identified furniture item completely. Fill the area it occupied with the correct floor, wall, or background that logically belongs there (matching the surrounding floor texture, color, and perspective).
+FOOTPRINT MATCHING: The new "${furnitureName}" occupies the SAME floor footprint as the removed item.
+• Same floor contact position (${pctX}%, ${pctY}% is the floor contact point).
+• Same approximate floor area coverage.
+• Same distance from camera/walls.
 
-**STEP 2 — PLACEMENT:** Place the new "${furnitureName}" in exactly the same position and at the same scale as the removed item. The new piece occupies the same floor footprint.
+FAILURE CONDITION: The new furniture must touch the floor — zero gap between feet/base and floor surface.
 
-**STEP 3 — INTEGRATION:**
-- PERSPECTIVE: Align the new furniture to the room's vanishing points — same perspective grid as the floor and walls
-- SCALE: Keep the same scale as the original piece. If the original was large, the replacement is large; if small, small.
-- LIGHTING: The new furniture receives light from the same direction and intensity as the original
-- SHADOW: Cast a floor shadow under the new furniture matching the angle, softness and color of other shadows in the scene
-- CONTACT: The new furniture sits FIRMLY on the floor — no floating
+━━━ STEP 5 — PERSPECTIVE & SCALE ━━━
+• Align the replacement to the same vanishing point(s) as the removed furniture.
+• Match the scale of the original item exactly — if the original was large, the replacement is large.
+• Vertical edges of the replacement must be truly vertical (not tilted).
+• Calibrate using your Step 1D scale reference.
 
-## ABSOLUTE CONSTRAINTS
-- Change ONLY the one identified furniture item. Everything else — all other furniture, walls, floor, ceiling, windows, doors, plants, artwork, lighting fixtures, pillows, and decorations — must remain PIXEL-PERFECT IDENTICAL.
-- Do NOT adjust room brightness, contrast, color grading, or atmosphere.
-- Do NOT move, resize, or alter any other object.
-- Output the COMPLETE room image at the same resolution.
+━━━ STEP 6 — LIGHTING INTEGRATION ━━━
+• The "${furnitureName}" receives light from the SAME direction as the original item and the rest of the room.
+• Cast a floor contact shadow matching the direction, length, and softness of all other shadows.
+• Do NOT change the room's ambient lighting, brightness, or color temperature.
 
-Now identify the furniture at (${pctX}%, ${pctY}%), remove it, and replace it with the "${furnitureName}".`
+━━━ ABSOLUTE PROHIBITIONS ━━━
+✗ Change ONLY the identified furniture — nothing else in the image may change by even one pixel
+✗ NO floating furniture — base must contact the floor
+✗ NO modifying walls, ceiling, floor, other furniture, windows, doors, art, plants, or accessories
+✗ NO changing room lighting, exposure, or color grading
+✗ NO adding objects that were not in the original scene
+
+Output the complete room image at its original resolution with ONLY the identified furniture replaced by the "${furnitureName}".`
 
     const model = getGeminiModel()
     const parts: Part[] = [
@@ -67,7 +86,7 @@ Now identify the furniture at (${pctX}%, ${pctY}%), remove it, and replace it wi
         const imgMime = imgRes.headers.get('content-type') ?? 'image/jpeg'
         parts.push({ inlineData: { mimeType: imgMime, data: imgBase64 } })
         parts.push({
-          text: `The image above shows the reference appearance for the "${furnitureName}". Use its exact shape, color, and style. Adapt only the lighting and shadow to match the room's light sources.`,
+          text: `REFERENCE APPEARANCE: The image above shows what the "${furnitureName}" looks like. Replicate its exact shape, proportions, color, and material finish in the room composite. Adapt ONLY the lighting direction and shadow to match the room's light source — do not change the furniture's intrinsic color or material.`,
         })
       } catch {}
     }

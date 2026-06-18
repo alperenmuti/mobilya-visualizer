@@ -14,32 +14,60 @@ export async function POST(req: NextRequest) {
       return Response.json({ resultUrl: imageDataUrl, demo: true })
     }
 
+    const pctX = Math.round((clickX ?? 0.5) * 100)
+    const pctY = Math.round((clickY ?? 0.7) * 100)
     const placement = describePlacement(clickX ?? 0.5, clickY ?? 0.7, furnitureName)
     const { mimeType, data } = dataUrlToInlineData(imageDataUrl)
 
-    const prompt = `You are an expert interior design visualization AI. Your job is to add furniture to room photographs with photorealistic precision.
+    const prompt = `You are a professional photo compositor performing a precise surgical edit on a room photograph. Your task is to add one piece of furniture so that the result is completely indistinguishable from a real photograph.
 
-## TASK
-Add a "${furnitureName}" to this room photograph.
+━━━ STEP 1 — ANALYZE THE SCENE BEFORE DRAWING ━━━
+Before making any change, mentally note:
+A) Where is the floor surface? Trace its edges and perspective lines.
+B) What is the camera eye level? (Look for the horizon line — where walls meet at eye level.)
+C) Where are existing shadows? Note their direction and angle precisely.
+D) What is the scale reference? (A standard door is ~200cm tall; ceiling ~250cm. Use this to calibrate.)
+E) What is the floor material and texture (wood, tile, carpet, concrete)?
 
-## PLACEMENT INSTRUCTIONS
+━━━ STEP 2 — FLOOR CONTACT (MOST CRITICAL RULE) ━━━
 ${placement}
 
-## RENDERING REQUIREMENTS
-1. PERSPECTIVE & DEPTH: The furniture must align perfectly with the room's vanishing point(s). Study the floor lines and wall angles — the furniture must share the exact same perspective grid as the floor and walls. If the floor has wood planks or tiles, the furniture legs must sit correctly on them.
-2. SCALE: Compare to visible reference objects (doors are ~200cm tall, standard sofa ~85cm tall, armchair ~80cm). Render the furniture at a realistic human-scale size relative to the room.
-3. LIGHTING: Identify the light source direction from existing shadows in the room. The furniture must receive light from the SAME direction and cast a shadow on the floor at the SAME angle as other objects.
-4. SHADOW: Cast a soft floor shadow under the furniture that matches the softness and color temperature of existing shadows.
-5. CONTACT: The furniture must sit FIRMLY on the floor — no floating, no hovering. The legs or base must make full contact with the floor surface.
-6. STYLE COHERENCE: Match the furniture's rendering quality to the photo — if the room photo is a render, render the furniture as a render; if it's a real photograph, make the furniture look photographed.
+FAILURE CONDITION: If the furniture's feet or base do NOT touch the floor surface — if there is any gap between the furniture and the floor — the image is WRONG. The furniture must be GROUNDED.
 
-## ABSOLUTE CONSTRAINTS
-- Do NOT modify ANYTHING else: walls, floor, ceiling, windows, doors, light switches, baseboards, and any existing objects must remain pixel-perfect identical.
-- Do NOT add any other objects, decorations, or accessories.
-- Do NOT change room brightness, contrast, color grading, or atmosphere.
-- Output the COMPLETE room image at the same resolution.
+━━━ STEP 3 — PERSPECTIVE ALIGNMENT ━━━
+The furniture must share the exact vanishing point(s) of the room.
+• Study the floor pattern lines, baseboard, or tile grout lines.
+• The furniture's base edges must be parallel to those floor lines.
+• The furniture's vertical edges must be truly vertical (not tilted).
+• At position (${pctX}%, ${pctY}%): furniture is ${pctY < 45 ? 'far from camera → render it smaller' : pctY > 65 ? 'close to camera → render it larger' : 'at mid-depth → standard scale'}.
 
-Now add the ${furnitureName} following all instructions above.`
+━━━ STEP 4 — SCALE CALIBRATION ━━━
+Use your Step 1D reference to size the furniture correctly.
+• A standard sofa is ~85cm tall, ~200cm wide.
+• An armchair is ~80cm tall, ~80cm wide.
+• A wardrobe is ~200cm tall, ~90cm wide.
+• A dining table is ~75cm tall.
+The furniture must look naturally sized relative to doors, windows, and walls visible in the photo.
+
+━━━ STEP 5 — LIGHTING & SHADOW ━━━
+• Identify the dominant light source direction from Step 1C shadows.
+• The "${furnitureName}" receives light from that SAME direction — same brightness, same color temperature.
+• Cast a contact shadow on the floor directly under the furniture, matching the softness and direction of existing shadows.
+• Do NOT add ambient glow, halo, or diffuse light that doesn't exist in the scene.
+
+━━━ STEP 6 — STYLE MATCH ━━━
+• If the photo is a real photograph → render the furniture as if photographed.
+• If the photo is a 3D render → render the furniture in matching render style.
+• Match sharpness, noise grain, depth-of-field blur, and color profile of the original.
+
+━━━ ABSOLUTE PROHIBITIONS ━━━
+✗ NO floating — the furniture must touch the floor
+✗ NO modifying walls, ceiling, floor surface, windows, doors, existing furniture
+✗ NO changing room brightness, color, or atmosphere
+✗ NO adding pillows, plants, accessories, or extra objects
+✗ NO tilting the furniture (it must stand upright and level)
+
+Output the complete room image at its original resolution with the "${furnitureName}" composited in.`
 
     const model = getGeminiModel()
     const parts: Part[] = [
@@ -55,7 +83,7 @@ Now add the ${furnitureName} following all instructions above.`
         const imgMime = imgRes.headers.get('content-type') ?? 'image/jpeg'
         parts.push({ inlineData: { mimeType: imgMime, data: imgBase64 } })
         parts.push({
-          text: `The image above is the reference appearance for the "${furnitureName}". Use its exact shape, color, and style when rendering it in the room. Adapt only the lighting and shadows to match the room.`,
+          text: `REFERENCE APPEARANCE: The image above shows what the "${furnitureName}" looks like. Replicate its exact shape, proportions, color, and material finish in the room composite. Adapt ONLY the lighting direction and shadow to match the room's light source — do not alter the furniture's intrinsic color or material.`,
         })
       } catch {}
     }

@@ -6,7 +6,7 @@ export function getGeminiModel() {
     model: 'gemini-3.1-flash-image',
     generationConfig: {
       responseModalities: ['IMAGE', 'TEXT'],
-      temperature: 1,
+      temperature: 0.7,
     } as GenerationConfig & { responseModalities: string[] },
   })
 }
@@ -18,9 +18,8 @@ export function dataUrlToInlineData(dataUrl: string): { mimeType: string; data: 
 }
 
 /**
- * Converts click coordinates to interior-design-aware placement instructions.
- * In a typical room photo: left wall = left edge, right wall = right edge,
- * back wall = upper-center, floor/foreground = bottom.
+ * Converts click coordinates into precise floor-contact + wall placement instructions.
+ * Critical insight: the click point IS the floor contact point, not the furniture center.
  */
 export function describePlacement(x: number, y: number, furnitureName: string): string {
   const isSeating = /koltuk|kanepe|sandalye|berjer|sofa|chair|armchair|couch/i.test(furnitureName)
@@ -28,49 +27,58 @@ export function describePlacement(x: number, y: number, furnitureName: string): 
   const isTable = /masa|sehpa|coffee table|dining table|side table/i.test(furnitureName)
   const isBed = /yatak|bed/i.test(furnitureName)
 
-  // Determine which wall/area was clicked
+  const pctX = Math.round(x * 100)
+  const pctY = Math.round(y * 100)
+
+  // Floor contact — the single most critical instruction
+  const floorContact = `FLOOR CONTACT POINT: The click at (${pctX}%, ${pctY}%) is the EXACT SPOT where the furniture's base/feet must touch the floor surface. The furniture body extends UPWARD from this point. Do NOT place the furniture above or below this floor contact point — it stands ON the floor AT this position.`
+
+  // Depth estimation (y coordinate → distance from camera)
+  const depthHint = y < 0.40
+    ? `This is near the FAR WALL — the furniture should appear SMALL due to perspective (farther from camera).`
+    : y < 0.65
+    ? `This is at MID-DEPTH in the room.`
+    : `This is CLOSE TO THE CAMERA — the furniture should appear LARGER due to perspective.`
+
+  // Wall proximity and facing
   let wallInstruction: string
-  let orientationRule: string
+  let facingRule: string
 
-  if (x < 0.25) {
-    // Left side → against left wall
-    wallInstruction = 'Place it flush against the LEFT wall of the room.'
-    orientationRule = isSeating
-      ? 'The seating must face RIGHTWARD / toward the center of the room, NOT toward the wall.'
-      : 'The furniture faces rightward/inward.'
-  } else if (x > 0.75) {
-    // Right side → against right wall
-    wallInstruction = 'Place it flush against the RIGHT wall of the room.'
-    orientationRule = isSeating
-      ? 'The seating must face LEFTWARD / toward the center of the room, NOT toward the wall.'
-      : 'The furniture faces leftward/inward.'
+  if (x < 0.22) {
+    wallInstruction = 'The LEFT WALL is immediately to the left — place the furniture flush against it.'
+    facingRule = isSeating
+      ? 'The back of the seating presses against the left wall. It FACES RIGHT toward the room interior.'
+      : 'The side/back of the furniture is against the left wall, facing right.'
+  } else if (x > 0.78) {
+    wallInstruction = 'The RIGHT WALL is immediately to the right — place the furniture flush against it.'
+    facingRule = isSeating
+      ? 'The back of the seating presses against the right wall. It FACES LEFT toward the room interior.'
+      : 'The side/back of the furniture is against the right wall, facing left.'
   } else if (y < 0.45) {
-    // Upper area → against back/far wall
-    wallInstruction = 'Place it flush against the BACK (far) wall of the room.'
-    orientationRule = isSeating
-      ? 'The seating must face TOWARD THE CAMERA / toward the viewer, NOT toward the back wall.'
-      : 'The furniture faces toward the camera/viewer.'
+    wallInstruction = 'The BACK (far) WALL is directly behind this position.'
+    facingRule = isSeating
+      ? 'The back of the seating is against the back wall. It FACES TOWARD THE CAMERA (toward the viewer).'
+      : 'The back of the furniture is against the back wall, facing toward the camera.'
   } else {
-    // Lower/center → against back wall, slightly forward
-    wallInstruction = 'Place it against the BACK wall or in the center-back area of the room.'
-    orientationRule = isSeating
-      ? 'The seating must face TOWARD THE CAMERA / toward the viewer.'
-      : 'The furniture faces toward the camera/viewer.'
+    wallInstruction = 'Position is in the central floor area, back toward the far wall.'
+    facingRule = isSeating
+      ? 'The seating FACES TOWARD THE CAMERA. Its back is toward the far wall.'
+      : 'The furniture faces toward the camera.'
   }
 
-  // Type-specific rules
-  let typeRule = ''
+  // Type-specific constraints
+  let typeConstraint = ''
   if (isSeating) {
-    typeRule = `SEATING RULE: Sofas and armchairs are NEVER placed floating in the middle of an empty room — they must have their back against a wall or be part of a clearly intentional arrangement. The back of the ${furnitureName} goes against the wall.`
+    typeConstraint = `SOFA/CHAIR RULE: The back of the ${furnitureName} must lean against or be very close to a wall — never fully floating in open space. All four legs (or the base) rest flat on the floor.`
   } else if (isStorage) {
-    typeRule = `STORAGE RULE: ${furnitureName} must be placed flush against a wall with no gap between the back of the furniture and the wall surface.`
+    typeConstraint = `CABINET/SHELF RULE: ${furnitureName} stands perfectly vertical against the wall with zero gap between its back and the wall surface. Base sits flat on the floor.`
   } else if (isTable) {
-    typeRule = `TABLE RULE: Place the ${furnitureName} as a natural centerpiece or against the wall depending on context.`
+    typeConstraint = `TABLE RULE: All legs of the ${furnitureName} touch the floor simultaneously. The tabletop is level (horizontal), not tilted.`
   } else if (isBed) {
-    typeRule = `BED RULE: The headboard of the ${furnitureName} goes against the wall, usually centered on that wall.`
+    typeConstraint = `BED RULE: The headboard of the ${furnitureName} sits flush against the wall. The entire bed frame rests flat on the floor.`
   }
 
-  return `${wallInstruction}\n${orientationRule}\n${typeRule}`
+  return [floorContact, depthHint, wallInstruction, facingRule, typeConstraint].filter(Boolean).join('\n')
 }
 
 export async function extractImageFromResponse(
