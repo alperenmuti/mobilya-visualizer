@@ -51,9 +51,15 @@ export async function POST(req: NextRequest) {
           marker: { x: cx, y: cy },
         })
         return Response.json({ resultUrl })
-      } catch (falErr) {
-        console.error('fal.ai error, falling back to Gemini:', falErr)
-        if (!process.env.GEMINI_KEY) throw falErr
+      } catch (falErr: any) {
+        const isAuth = falErr?.status === 401 || /unauthorized/i.test(falErr?.message ?? '')
+        console.error(`fal.ai error (${isAuth ? 'auth' : 'other'}), falling back to Gemini:`, falErr?.message || falErr)
+        if (!process.env.GEMINI_KEY) {
+          const msg = isAuth
+            ? 'fal.ai API anahtarı geçersiz. Lütfen Vercel ortam değişkenlerindeki FAL_KEY değerini kontrol edin.'
+            : (falErr?.message || 'fal.ai görüntü üretemedi')
+          throw new Error(msg)
+        }
       }
     }
 

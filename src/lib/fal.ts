@@ -4,7 +4,7 @@ let _configured = false
 
 function configure() {
   if (!_configured && process.env.FAL_KEY) {
-    fal.config({ credentials: process.env.FAL_KEY })
+    fal.config({ credentials: process.env.FAL_KEY.trim() })
     _configured = true
   }
 }
