@@ -133,6 +133,8 @@ interface FluxImageOutput {
  */
 export async function runFluxFill(params: {
   imageDataUrl: string
+  /** Client-generated mask (preferred — no Sharp needed). Falls back to server-side Sharp if absent. */
+  maskDataUrl?: string
   furnitureName: string
   cx: number
   cy: number
@@ -143,11 +145,16 @@ export async function runFluxFill(params: {
 
   const profile = detectFurniture(furnitureName)
 
-  const [imageUrl, maskDataUrl] = await Promise.all([
+  // Prefer client-provided mask; fall back to Sharp-based generation
+  let resolvedMask = params.maskDataUrl
+  if (!resolvedMask) {
+    resolvedMask = await createFurnitureMask(imageDataUrl, cx, cy, profile.wFrac, profile.hFrac)
+  }
+
+  const [imageUrl, maskUrl] = await Promise.all([
     uploadDataUrl(imageDataUrl),
-    createFurnitureMask(imageDataUrl, cx, cy, profile.wFrac, profile.hFrac),
+    uploadDataUrl(resolvedMask),
   ])
-  const maskUrl = await uploadDataUrl(maskDataUrl)
 
   const prompt = [
     `A photorealistic ${profile.englishName}`,
