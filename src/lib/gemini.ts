@@ -18,8 +18,18 @@ export function dataUrlToInlineData(dataUrl: string): { mimeType: string; data: 
 }
 
 /**
- * Converts click coordinates into precise floor-contact + wall placement instructions.
- * Critical insight: the click point IS the floor contact point, not the furniture center.
+ * Converts click coordinates into floor-contact + wall-proximity instructions.
+ *
+ * Wall detection uses wider zones than you'd expect because in a perspective
+ * room photo the visible floor area is wide — furniture "against the left wall"
+ * can appear anywhere in the left 40% of the image.
+ *
+ * Zones:
+ *   x < 0.38  → near left wall
+ *   x > 0.62  → near right wall
+ *   y < 0.52  → near back wall (upper half = far from camera)
+ *   corner    → both left/right AND y < 0.42
+ *   center    → none of the above (open floor)
  */
 export function describePlacement(x: number, y: number, furnitureName: string): string {
   const isSeating = /koltuk|kanepe|sandalye|berjer|sofa|chair|armchair|couch/i.test(furnitureName)
@@ -30,55 +40,81 @@ export function describePlacement(x: number, y: number, furnitureName: string): 
   const pctX = Math.round(x * 100)
   const pctY = Math.round(y * 100)
 
-  // Floor contact — the single most critical instruction
-  const floorContact = `FLOOR CONTACT POINT: The click at (${pctX}%, ${pctY}%) is the EXACT SPOT where the furniture's base/feet must touch the floor surface. The furniture body extends UPWARD from this point. Do NOT place the furniture above or below this floor contact point — it stands ON the floor AT this position.`
+  // Floor contact — single most critical rule
+  const floorContact = `FLOOR CONTACT POINT: The click at (${pctX}%, ${pctY}%) is the EXACT pixel where the furniture's feet/base must touch the floor. The furniture body extends UPWARD from this point. Zero tolerance — no floating.`
 
-  // Depth estimation (y coordinate → distance from camera)
-  const depthHint = y < 0.40
-    ? `This is near the FAR WALL — the furniture should appear SMALL due to perspective (farther from camera).`
-    : y < 0.65
-    ? `This is at MID-DEPTH in the room.`
-    : `This is CLOSE TO THE CAMERA — the furniture should appear LARGER due to perspective.`
+  // Wall proximity (wider zones for realistic perspective room photos)
+  const nearLeft = x < 0.38
+  const nearRight = x > 0.62
+  const nearBack = y < 0.52
+  const inCorner = (nearLeft || nearRight) && y < 0.42
 
-  // Wall proximity and facing
-  let wallInstruction: string
-  let facingRule: string
+  let wallSection: string
+  let orientationRule: string
 
-  if (x < 0.22) {
-    wallInstruction = 'The LEFT WALL is immediately to the left — place the furniture flush against it.'
-    facingRule = isSeating
-      ? 'The back of the seating presses against the left wall. It FACES RIGHT toward the room interior.'
-      : 'The side/back of the furniture is against the left wall, facing right.'
-  } else if (x > 0.78) {
-    wallInstruction = 'The RIGHT WALL is immediately to the right — place the furniture flush against it.'
-    facingRule = isSeating
-      ? 'The back of the seating presses against the right wall. It FACES LEFT toward the room interior.'
-      : 'The side/back of the furniture is against the right wall, facing left.'
-  } else if (y < 0.45) {
-    wallInstruction = 'The BACK (far) WALL is directly behind this position.'
-    facingRule = isSeating
-      ? 'The back of the seating is against the back wall. It FACES TOWARD THE CAMERA (toward the viewer).'
+  if (inCorner && nearLeft) {
+    wallSection = `CORNER — LEFT + BACK WALL: The click is in the top-left area where the left wall and back wall converge. Place the furniture in that corner.
+WALL CONTACT: The furniture's LEFT SIDE (or back-left corner) is flush against the left wall. The furniture's BACK is close to or touching the back wall. Zero gap on both wall surfaces.`
+    orientationRule = isSeating
+      ? 'The seating FACES diagonally toward the room center (rightward and toward camera). Back-left corner is in the room corner.'
+      : 'The furniture tucks into the corner, back-left touching both walls.'
+
+  } else if (inCorner && nearRight) {
+    wallSection = `CORNER — RIGHT + BACK WALL: The click is in the top-right area where the right wall and back wall converge. Place the furniture in that corner.
+WALL CONTACT: The furniture's RIGHT SIDE (or back-right corner) is flush against the right wall. The furniture's BACK is close to or touching the back wall. Zero gap on both wall surfaces.`
+    orientationRule = isSeating
+      ? 'The seating FACES diagonally toward the room center (leftward and toward camera). Back-right corner is in the room corner.'
+      : 'The furniture tucks into the corner, back-right touching both walls.'
+
+  } else if (nearLeft) {
+    wallSection = `LEFT WALL: The left wall surface is to the left of position (${pctX}%, ${pctY}%).
+WALL CONTACT: The BACK of the ${furnitureName} is pressed flat against the left wall. You must be able to trace a continuous contact line where the furniture back meets the wall — zero gap, zero shadow gap, no air space between them.`
+    orientationRule = isSeating
+      ? 'The seating FACES RIGHT — toward the room interior. Back is against the left wall. The front of the seat (where you sit) faces right.'
+      : 'The furniture side/back is against the left wall, facing rightward/inward.'
+
+  } else if (nearRight) {
+    wallSection = `RIGHT WALL: The right wall surface is to the right of position (${pctX}%, ${pctY}%).
+WALL CONTACT: The BACK of the ${furnitureName} is pressed flat against the right wall. Continuous contact line at the wall — zero gap.`
+    orientationRule = isSeating
+      ? 'The seating FACES LEFT — toward the room interior. Back is against the right wall. The front of the seat (where you sit) faces left.'
+      : 'The furniture side/back is against the right wall, facing leftward/inward.'
+
+  } else if (nearBack) {
+    wallSection = `BACK WALL: The back (far) wall is directly behind position (${pctX}%, ${pctY}%).
+WALL CONTACT: The BACK of the ${furnitureName} is pressed flat against the back wall. Continuous contact line where furniture back meets wall — zero gap.`
+    orientationRule = isSeating
+      ? 'The seating FACES THE CAMERA — toward the viewer. Back is against the back wall.'
       : 'The back of the furniture is against the back wall, facing toward the camera.'
+
   } else {
-    wallInstruction = 'Position is in the central floor area, back toward the far wall.'
-    facingRule = isSeating
-      ? 'The seating FACES TOWARD THE CAMERA. Its back is toward the far wall.'
+    // Open center of room
+    wallSection = `OPEN FLOOR: Position (${pctX}%, ${pctY}%) is in the open center of the room.`
+    orientationRule = isSeating
+      ? 'The seating FACES THE CAMERA. For natural interior design, keep it in a deliberate arrangement — a coffee table in front if space allows.'
       : 'The furniture faces toward the camera.'
   }
 
-  // Type-specific constraints
-  let typeConstraint = ''
+  // Depth/scale hint from y coordinate
+  const depthHint = y < 0.38
+    ? `DEPTH: Position is near the FAR END of the room — furniture appears SMALLER due to perspective.`
+    : y < 0.62
+    ? `DEPTH: Mid-depth position.`
+    : `DEPTH: CLOSE TO THE CAMERA — furniture appears LARGER due to perspective.`
+
+  // Type physics
+  let typePhysics = ''
   if (isSeating) {
-    typeConstraint = `SOFA/CHAIR RULE: The back of the ${furnitureName} must lean against or be very close to a wall — never fully floating in open space. All four legs (or the base) rest flat on the floor.`
+    typePhysics = `SEATING PHYSICS: Every leg/base point touches the floor. The back surface of the ${furnitureName} is vertical and flat against the wall. Seat cushions are horizontal. The seating is perfectly upright — not tilted.`
   } else if (isStorage) {
-    typeConstraint = `CABINET/SHELF RULE: ${furnitureName} stands perfectly vertical against the wall with zero gap between its back and the wall surface. Base sits flat on the floor.`
+    typePhysics = `STORAGE PHYSICS: ${furnitureName} is perfectly vertical (plumb). Back is flat on the wall surface with zero gap. Base is flat on the floor. All shelves are level.`
   } else if (isTable) {
-    typeConstraint = `TABLE RULE: All legs of the ${furnitureName} touch the floor simultaneously. The tabletop is level (horizontal), not tilted.`
+    typePhysics = `TABLE PHYSICS: All legs contact the floor simultaneously. The tabletop surface is perfectly horizontal (level) — not tilted toward or away from camera.`
   } else if (isBed) {
-    typeConstraint = `BED RULE: The headboard of the ${furnitureName} sits flush against the wall. The entire bed frame rests flat on the floor.`
+    typePhysics = `BED PHYSICS: Headboard is flush against the wall. Entire bed frame sits flat on the floor. Mattress is level and horizontal.`
   }
 
-  return [floorContact, depthHint, wallInstruction, facingRule, typeConstraint].filter(Boolean).join('\n')
+  return [floorContact, wallSection, orientationRule, depthHint, typePhysics].filter(Boolean).join('\n')
 }
 
 export async function extractImageFromResponse(

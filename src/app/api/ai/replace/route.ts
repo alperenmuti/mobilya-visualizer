@@ -28,8 +28,9 @@ export async function POST(req: NextRequest) {
 Before touching anything, mentally record:
 A) The floor surface — its perspective lines, material, and texture.
 B) The camera eye level — where is the horizon in this photo?
-C) The shadow direction and angle — which way do all shadows fall?
-D) The scale reference — door height (~200cm), ceiling height (~250cm).
+C) WALL POSITIONS: Find the left wall, right wall, and back wall surfaces. Find the exact floor-wall junction lines. Note which wall the existing furniture is against.
+D) The shadow direction and angle — which way do all shadows fall?
+E) The scale reference — door height (~200cm), ceiling height (~250cm).
 
 ━━━ STEP 2 — IDENTIFY THE TARGET ━━━
 The user clicked at (${pctX}%, ${pctY}%) in the image.
@@ -50,7 +51,10 @@ FOOTPRINT MATCHING: The new "${furnitureName}" occupies the SAME floor footprint
 • Same approximate floor area coverage.
 • Same distance from camera/walls.
 
-FAILURE CONDITION: The new furniture must touch the floor — zero gap between feet/base and floor surface.
+FAILURE CONDITIONS — any of these = WRONG output:
+✗ New furniture feet/base do not touch the floor (floating)
+✗ New furniture back has a visible gap between it and the wall
+✗ New furniture appears in a different wall/position than the original
 
 ━━━ STEP 5 — PERSPECTIVE & SCALE ━━━
 • Align the replacement to the same vanishing point(s) as the removed furniture.

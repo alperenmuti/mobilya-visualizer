@@ -25,14 +25,18 @@ export async function POST(req: NextRequest) {
 Before making any change, mentally note:
 A) Where is the floor surface? Trace its edges and perspective lines.
 B) What is the camera eye level? (Look for the horizon line — where walls meet at eye level.)
-C) Where are existing shadows? Note their direction and angle precisely.
-D) What is the scale reference? (A standard door is ~200cm tall; ceiling ~250cm. Use this to calibrate.)
-E) What is the floor material and texture (wood, tile, carpet, concrete)?
+C) WALL POSITIONS: Locate the left wall surface, right wall surface, and back wall surface in the image. Find the exact line where each wall meets the floor (the floor-wall junction). This is critical for furniture placement.
+D) Where are existing shadows? Note their direction and angle precisely.
+E) What is the scale reference? (A standard door is ~200cm tall; ceiling ~250cm. Use this to calibrate.)
+F) What is the floor material and texture (wood, tile, carpet, concrete)?
 
-━━━ STEP 2 — FLOOR CONTACT (MOST CRITICAL RULE) ━━━
+━━━ STEP 2 — FLOOR + WALL CONTACT ━━━
 ${placement}
 
-FAILURE CONDITION: If the furniture's feet or base do NOT touch the floor surface — if there is any gap between the furniture and the floor — the image is WRONG. The furniture must be GROUNDED.
+FAILURE CONDITIONS — if any of these are true, the output is WRONG:
+✗ Furniture feet/base do not touch the floor (floating)
+✗ Furniture back has a visible gap between it and the wall
+✗ Furniture appears to pass through the wall or floor
 
 ━━━ STEP 3 — PERSPECTIVE ALIGNMENT ━━━
 The furniture must share the exact vanishing point(s) of the room.
