@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import type { Part } from '@google/generative-ai'
 import { getGeminiModel, dataUrlToInlineData, describePlacement, extractImageFromResponse } from '@/lib/gemini'
-import { runFluxKontext, wallInstructionForFlux } from '@/lib/fal'
+import { runFluxFill, wallInstructionForFlux } from '@/lib/fal'
 
 export async function POST(req: NextRequest) {
   try {
@@ -16,44 +16,23 @@ export async function POST(req: NextRequest) {
     const pctX = Math.round(cx * 100)
     const pctY = Math.round(cy * 100)
 
-    // ── fal.ai — FLUX Kontext Pro (primary) ──────────────────────────
+    // ── fal.ai — FLUX Pro Fill / inpainting (primary) ────────────────
+    // Generates a precise mask at the click location so FLUX knows EXACTLY
+    // where to place the furniture, rather than guessing from text.
     if (process.env.FAL_KEY) {
       const wallNote = wallInstructionForFlux(cx, cy)
-
-      // A visual yellow+red target marker is drawn on the image at the click
-      // position before sending to FLUX. The prompt references that marker
-      // so the model knows exactly where to place the furniture.
-      const prompt = [
-        `Add a photorealistic ${furnitureName} to this room.`,
-        `Place it exactly where the yellow circle with the red center is marked in the image — that is the precise floor contact point where the furniture's feet or base must touch the floor.`,
-        `The furniture body extends upward from the marker; its base/feet are at the marker position.`,
-        wallNote,
-        `Perspective and scale must be consistent with the room: align vanishing points, size relative to the doors and ceiling.`,
-        `Apply natural shadows and lighting matching the existing room light.`,
-        `Remove the yellow circle marker in the final output.`,
-        `Do not change anything else — walls, floor, ceiling, windows, doors, and all existing objects remain pixel-perfect identical.`,
-      ].join(' ')
-
-      // Fallback prompt (no visual marker available): use wall zone description only
-      const promptFallback = [
-        `Add a photorealistic ${furnitureName} to this room.`,
-        wallNote,
-        `The furniture rests firmly on the floor with all feet in contact — zero floating.`,
-        `Perspective and scale must match the room. Apply natural shadows and lighting.`,
-        `Do not change anything else in the room.`,
-      ].join(' ')
-
       try {
-        const resultUrl = await runFluxKontext({
+        const resultUrl = await runFluxFill({
           imageDataUrl,
-          prompt,
-          promptFallback,
-          marker: { x: cx, y: cy },
+          furnitureName,
+          cx,
+          cy,
+          wallNote,
         })
         return Response.json({ resultUrl })
       } catch (falErr: any) {
         const isAuth = falErr?.status === 401 || /unauthorized/i.test(falErr?.message ?? '')
-        console.error(`fal.ai error (${isAuth ? 'auth' : 'other'}), falling back to Gemini:`, falErr?.message || falErr)
+        console.error(`fal.ai error (${isAuth ? 'auth' : 'other'}):`, falErr?.message || falErr)
         if (!process.env.GEMINI_KEY) {
           const msg = isAuth
             ? 'fal.ai API anahtarı geçersiz. Lütfen Vercel ortam değişkenlerindeki FAL_KEY değerini kontrol edin.'
