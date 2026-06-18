@@ -11,15 +11,6 @@ export function getGeminiModel() {
   })
 }
 
-/** Strips SKU codes and brand suffixes from furniture names, e.g. "Alia Koltuk 2C0ALIA001 | İstikbal" → "Alia Koltuk" */
-export function cleanFurnitureName(name: string): string {
-  return (name ?? '')
-    .split('|')[0]                          // remove brand suffix after |
-    .replace(/\b[A-Z0-9]{6,}\b/g, '')      // remove SKU-like codes (6+ uppercase alphanumeric chars)
-    .replace(/\s+/g, ' ')
-    .trim()
-}
-
 export function dataUrlToInlineData(dataUrl: string): { mimeType: string; data: string } {
   const [header, data] = dataUrl.split(',')
   const mimeType = header.match(/data:([^;]+)/)?.[1] ?? 'image/jpeg'

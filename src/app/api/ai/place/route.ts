@@ -1,11 +1,10 @@
 import { NextRequest } from 'next/server'
 import type { Part } from '@google/generative-ai'
-import { getGeminiModel, dataUrlToInlineData, describePlacement, extractImageFromResponse, cleanFurnitureName } from '@/lib/gemini'
+import { getGeminiModel, dataUrlToInlineData, describePlacement, extractImageFromResponse } from '@/lib/gemini'
 
 export async function POST(req: NextRequest) {
   try {
-    const { imageDataUrl, furnitureName: rawName, furnitureImageUrl, clickX, clickY } = await req.json()
-    const furnitureName = cleanFurnitureName(rawName)
+    const { imageDataUrl, furnitureName, furnitureImageUrl, clickX, clickY } = await req.json()
 
     if (!imageDataUrl || !furnitureName) {
       return Response.json({ error: 'Eksik parametreler' }, { status: 400 })
@@ -15,14 +14,12 @@ export async function POST(req: NextRequest) {
       return Response.json({ resultUrl: imageDataUrl, demo: true })
     }
 
-    const cx = clickX ?? 0.5
-    const cy = clickY ?? 0.7
-    const pctX = Math.round(cx * 100)
-    const pctY = Math.round(cy * 100)
-    const placement = describePlacement(cx, cy, furnitureName)
+    const pctX = Math.round((clickX ?? 0.5) * 100)
+    const pctY = Math.round((clickY ?? 0.7) * 100)
+    const placement = describePlacement(clickX ?? 0.5, clickY ?? 0.7, furnitureName)
     const { mimeType, data } = dataUrlToInlineData(imageDataUrl)
 
-    const prompt = `You are a professional photo compositor. Edit the room photograph to add furniture. Output a photorealistic image — NO TEXT, NO LABELS, NO ANNOTATIONS anywhere in the output.
+    const prompt = `You are a professional photo compositor performing a precise surgical edit on a room photograph. Your task is to add one piece of furniture so that the result is completely indistinguishable from a real photograph.
 
 ━━━ STEP 1 — ANALYZE THE SCENE BEFORE DRAWING ━━━
 Before making any change, mentally note:
@@ -68,14 +65,13 @@ The furniture must look naturally sized relative to doors, windows, and walls vi
 • Match sharpness, noise grain, depth-of-field blur, and color profile of the original.
 
 ━━━ ABSOLUTE PROHIBITIONS ━━━
-✗ Furniture must touch the floor — no floating
-✗ Do not modify walls, ceiling, floor, windows, doors, or existing furniture
-✗ Do not change room brightness, color, or atmosphere
-✗ Do not add pillows, plants, accessories, or extra objects
-✗ Do not tilt the furniture — it must stand upright and level
-✗ Do NOT write any text, labels, product codes, furniture names, or annotations anywhere in the output image
+✗ NO floating — the furniture must touch the floor
+✗ NO modifying walls, ceiling, floor surface, windows, doors, existing furniture
+✗ NO changing room brightness, color, or atmosphere
+✗ NO adding pillows, plants, accessories, or extra objects
+✗ NO tilting the furniture (it must stand upright and level)
 
-Output the complete room image at its original resolution with the furniture composited in.`
+Output the complete room image at its original resolution with the "${furnitureName}" composited in.`
 
     const model = getGeminiModel()
     const parts: Part[] = [
