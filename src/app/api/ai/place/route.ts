@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import type { Part } from '@google/generative-ai'
 import { getGeminiModel, dataUrlToInlineData, describePlacement, extractImageFromResponse } from '@/lib/gemini'
-import { runFluxKontext, placementForFlux } from '@/lib/fal'
+import { runFluxKontext, wallInstructionForFlux } from '@/lib/fal'
 
 export async function POST(req: NextRequest) {
   try {
@@ -18,25 +18,31 @@ export async function POST(req: NextRequest) {
 
     // ── fal.ai — FLUX Kontext Pro (primary) ──────────────────────────
     if (process.env.FAL_KEY) {
-      const placement = placementForFlux(cx, cy)
+      const wallNote = wallInstructionForFlux(cx, cy)
 
+      // A visual yellow+red target marker is drawn on the image at the click
+      // position before sending to FLUX. The prompt references that marker
+      // so the model knows exactly where to place the furniture.
       const prompt = [
-        `Add a photorealistic ${furnitureName} ${placement}.`,
-        `The furniture rests firmly on the floor — zero floating, feet in full contact with the floor surface.`,
-        `Its back is pressed flat against the wall with zero gap.`,
-        `Use the click position (${pctX}%, ${pctY}%) as the exact floor contact point; the furniture body extends upward from there.`,
-        `Perspective and scale must match the room: align vanishing points, size relative to doors and ceiling.`,
-        `Cast a natural contact shadow matching the room's existing shadow direction and softness.`,
-        `Keep every other element in the room exactly unchanged — walls, floor, ceiling, windows, doors, all existing furniture and accessories.`,
-        `Photorealistic interior design photography quality.`,
+        `Add a photorealistic ${furnitureName} to this room.`,
+        `Place it exactly where the yellow circle with the red center is marked in the image — that is the precise floor contact point where the furniture's feet or base must touch the floor.`,
+        `The furniture body extends upward from the marker; its base/feet are at the marker position.`,
+        wallNote,
+        `Perspective and scale must be consistent with the room: align vanishing points, size relative to the doors and ceiling.`,
+        `Apply natural shadows and lighting matching the existing room light.`,
+        `Remove the yellow circle marker in the final output.`,
+        `Do not change anything else — walls, floor, ceiling, windows, doors, and all existing objects remain pixel-perfect identical.`,
       ].join(' ')
 
       try {
-        const resultUrl = await runFluxKontext({ imageDataUrl, prompt })
+        const resultUrl = await runFluxKontext({
+          imageDataUrl,
+          prompt,
+          marker: { x: cx, y: cy },
+        })
         return Response.json({ resultUrl })
       } catch (falErr) {
         console.error('fal.ai error, falling back to Gemini:', falErr)
-        // fall through to Gemini if key is also set
         if (!process.env.GEMINI_KEY) throw falErr
       }
     }

@@ -21,20 +21,25 @@ export async function POST(req: NextRequest) {
 
     // ── fal.ai — FLUX Kontext Pro (primary) ──────────────────────────
     if (process.env.FAL_KEY) {
+      // A visual target marker is drawn at the click position so the model
+      // can see exactly which furniture piece to replace.
       const prompt = [
-        `Replace the furniture item located at approximately (${pctX}%, ${pctY}%) in this image`,
-        `(measured from the top-left corner, 0% = left/top, 100% = right/bottom)`,
-        `with a photorealistic ${furnitureName}.`,
-        `Place the new furniture in exactly the same position, same scale, same orientation as the original item.`,
-        `The new furniture must rest firmly on the floor — zero floating, all feet in contact with the floor.`,
+        `Replace the furniture piece that is at the yellow circle marker in this image with a photorealistic ${furnitureName}.`,
+        `The yellow circle with the red center marks the exact furniture item to remove and replace.`,
+        `Place the new ${furnitureName} in exactly the same position, same scale, and same orientation as the item that was at the marker.`,
+        `The new furniture must rest firmly on the floor — all feet in contact with the floor, zero floating.`,
         `If the original was against a wall, the new furniture's back must be flush against the same wall with zero gap.`,
-        `Reconstruct any floor or wall that was hidden behind the original furniture to look seamless.`,
-        `Keep every other element in the room completely unchanged — no other furniture, walls, floor, ceiling, windows, or accessories may change.`,
-        `Photorealistic interior design photography quality.`,
+        `Seamlessly reconstruct any floor or wall surface that was hidden behind the original item.`,
+        `Remove the yellow circle marker in the final output.`,
+        `Do not change anything else — all other furniture, walls, floor, ceiling, windows, and accessories must remain completely unchanged.`,
       ].join(' ')
 
       try {
-        const resultUrl = await runFluxKontext({ imageDataUrl, prompt })
+        const resultUrl = await runFluxKontext({
+          imageDataUrl,
+          prompt,
+          marker: { x: cx, y: cy },
+        })
         return Response.json({ resultUrl })
       } catch (falErr) {
         console.error('fal.ai error, falling back to Gemini:', falErr)
