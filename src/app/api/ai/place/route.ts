@@ -1,10 +1,11 @@
 import { NextRequest } from 'next/server'
 import type { Part } from '@google/generative-ai'
-import { getGeminiModel, dataUrlToInlineData, describePlacement, extractImageFromResponse } from '@/lib/gemini'
+import { getGeminiModel, dataUrlToInlineData, describePlacement, extractImageFromResponse, cleanFurnitureName } from '@/lib/gemini'
 
 export async function POST(req: NextRequest) {
   try {
-    const { imageDataUrl, furnitureName, furnitureImageUrl, clickX, clickY } = await req.json()
+    const { imageDataUrl, furnitureName: rawName, furnitureImageUrl, clickX, clickY } = await req.json()
+    const furnitureName = cleanFurnitureName(rawName)
 
     if (!imageDataUrl || !furnitureName) {
       return Response.json({ error: 'Eksik parametreler' }, { status: 400 })
@@ -21,7 +22,7 @@ export async function POST(req: NextRequest) {
     const placement = describePlacement(cx, cy, furnitureName)
     const { mimeType, data } = dataUrlToInlineData(imageDataUrl)
 
-    const prompt = `You are a professional photo compositor performing a precise surgical edit on a room photograph. Your task is to add one piece of furniture so that the result is completely indistinguishable from a real photograph.
+    const prompt = `You are a professional photo compositor. Edit the room photograph to add furniture. Output a photorealistic image — NO TEXT, NO LABELS, NO ANNOTATIONS anywhere in the output.
 
 ━━━ STEP 1 — ANALYZE THE SCENE BEFORE DRAWING ━━━
 Before making any change, mentally note:
@@ -67,13 +68,14 @@ The furniture must look naturally sized relative to doors, windows, and walls vi
 • Match sharpness, noise grain, depth-of-field blur, and color profile of the original.
 
 ━━━ ABSOLUTE PROHIBITIONS ━━━
-✗ NO floating — the furniture must touch the floor
-✗ NO modifying walls, ceiling, floor surface, windows, doors, existing furniture
-✗ NO changing room brightness, color, or atmosphere
-✗ NO adding pillows, plants, accessories, or extra objects
-✗ NO tilting the furniture (it must stand upright and level)
+✗ Furniture must touch the floor — no floating
+✗ Do not modify walls, ceiling, floor, windows, doors, or existing furniture
+✗ Do not change room brightness, color, or atmosphere
+✗ Do not add pillows, plants, accessories, or extra objects
+✗ Do not tilt the furniture — it must stand upright and level
+✗ Do NOT write any text, labels, product codes, furniture names, or annotations anywhere in the output image
 
-Output the complete room image at its original resolution with the "${furnitureName}" composited in.`
+Output the complete room image at its original resolution with the furniture composited in.`
 
     const model = getGeminiModel()
     const parts: Part[] = [

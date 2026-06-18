@@ -1,13 +1,14 @@
 import { NextRequest } from 'next/server'
 import type { Part } from '@google/generative-ai'
-import { getGeminiModel, dataUrlToInlineData, describePlacement, extractImageFromResponse } from '@/lib/gemini'
+import { getGeminiModel, dataUrlToInlineData, describePlacement, extractImageFromResponse, cleanFurnitureName } from '@/lib/gemini'
 
 export async function POST(req: NextRequest) {
   try {
     const {
-      imageDataUrl, furnitureName, furnitureImageUrl,
+      imageDataUrl, furnitureName: rawName, furnitureImageUrl,
       clickX, clickY,
     } = await req.json()
+    const furnitureName = cleanFurnitureName(rawName)
 
     if (!imageDataUrl || !furnitureName) {
       return Response.json({ error: 'Eksik parametreler' }, { status: 400 })
@@ -24,7 +25,9 @@ export async function POST(req: NextRequest) {
     const placement = describePlacement(cx, cy, furnitureName)
     const { mimeType, data } = dataUrlToInlineData(imageDataUrl)
 
-    const prompt = `You are a professional photo compositor performing a precise surgical swap on a room photograph. Replace exactly one piece of furniture while keeping every other pixel identical.
+    const prompt = `You are a professional photo compositor. Edit the room photograph to replace furniture. Output a photorealistic image — NO TEXT, NO LABELS, NO ANNOTATIONS anywhere in the output.
+
+Replace exactly one piece of furniture while keeping every other pixel identical.
 
 ━━━ STEP 1 — ANALYZE THE SCENE ━━━
 Before touching anything, mentally record:
@@ -70,13 +73,14 @@ FAILURE CONDITIONS — any of these = WRONG output:
 • Do NOT change the room's ambient lighting, brightness, or color temperature.
 
 ━━━ ABSOLUTE PROHIBITIONS ━━━
-✗ Change ONLY the identified furniture — nothing else in the image may change by even one pixel
-✗ NO floating furniture — base must contact the floor
-✗ NO modifying walls, ceiling, floor, other furniture, windows, doors, art, plants, or accessories
-✗ NO changing room lighting, exposure, or color grading
-✗ NO adding objects that were not in the original scene
+✗ Change ONLY the identified furniture — nothing else may change
+✗ Furniture must touch the floor — no floating
+✗ Do not modify walls, ceiling, floor, other furniture, windows, doors, art, plants, or accessories
+✗ Do not change room lighting, exposure, or color grading
+✗ Do not add objects that were not in the original scene
+✗ Do NOT write any text, labels, product codes, furniture names, or annotations anywhere in the output image
 
-Output the complete room image at its original resolution with ONLY the identified furniture replaced by the "${furnitureName}".`
+Output the complete room image at its original resolution with only the identified furniture replaced.`
 
     const model = getGeminiModel()
     const parts: Part[] = [
