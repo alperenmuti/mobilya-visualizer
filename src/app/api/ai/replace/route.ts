@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import type { Part } from '@google/generative-ai'
 import { getGeminiModel, dataUrlToInlineData, describePlacement, extractImageFromResponse } from '@/lib/gemini'
+import { runFluxKontext } from '@/lib/fal'
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,13 +14,40 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: 'Eksik parametreler' }, { status: 400 })
     }
 
+    const cx = clickX ?? 0.5
+    const cy = clickY ?? 0.5
+    const pctX = Math.round(cx * 100)
+    const pctY = Math.round(cy * 100)
+
+    // ── fal.ai — FLUX Kontext Pro (primary) ──────────────────────────
+    if (process.env.FAL_KEY) {
+      const prompt = [
+        `Replace the furniture item located at approximately (${pctX}%, ${pctY}%) in this image`,
+        `(measured from the top-left corner, 0% = left/top, 100% = right/bottom)`,
+        `with a photorealistic ${furnitureName}.`,
+        `Place the new furniture in exactly the same position, same scale, same orientation as the original item.`,
+        `The new furniture must rest firmly on the floor — zero floating, all feet in contact with the floor.`,
+        `If the original was against a wall, the new furniture's back must be flush against the same wall with zero gap.`,
+        `Reconstruct any floor or wall that was hidden behind the original furniture to look seamless.`,
+        `Keep every other element in the room completely unchanged — no other furniture, walls, floor, ceiling, windows, or accessories may change.`,
+        `Photorealistic interior design photography quality.`,
+      ].join(' ')
+
+      try {
+        const resultUrl = await runFluxKontext({ imageDataUrl, prompt })
+        return Response.json({ resultUrl })
+      } catch (falErr) {
+        console.error('fal.ai error, falling back to Gemini:', falErr)
+        if (!process.env.GEMINI_KEY) throw falErr
+      }
+    }
+
+    // ── Gemini (fallback) ─────────────────────────────────────────────
     if (!process.env.GEMINI_KEY) {
       return Response.json({ resultUrl: imageDataUrl, demo: true })
     }
 
-    const pctX = Math.round((clickX ?? 0.5) * 100)
-    const pctY = Math.round((clickY ?? 0.5) * 100)
-    const placement = describePlacement(clickX ?? 0.5, clickY ?? 0.5, furnitureName)
+    const placement = describePlacement(cx, cy, furnitureName)
     const { mimeType, data } = dataUrlToInlineData(imageDataUrl)
 
     const prompt = `You are a professional photo compositor performing a precise surgical swap on a room photograph. Replace exactly one piece of furniture while keeping every other pixel identical.
