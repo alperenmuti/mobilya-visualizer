@@ -97,12 +97,16 @@ Output the complete room image at its original resolution with ONLY the identifi
       } catch {}
     }
 
-    const result = await model.generateContent(parts)
-    const { imageUrl, textFallback } = await extractImageFromResponse(result)
+    // Retry up to 3 times — Gemini sometimes returns text-only on the first attempt
+    let imageUrl: string | null = null
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const result = await model.generateContent(parts)
+      const extracted = await extractImageFromResponse(result)
+      if (extracted.imageUrl) { imageUrl = extracted.imageUrl; break }
+      console.warn(`Gemini attempt ${attempt + 1} returned no image: ${extracted.textFallback ?? 'no text'}`)
+    }
 
     if (!imageUrl) {
-      const detail = textFallback ? ` (model said: "${textFallback}")` : ''
-      console.error('Gemini returned no image' + detail)
       throw new Error('Gemini görüntü üretemedi. Lütfen tekrar deneyin.')
     }
 
