@@ -82,13 +82,19 @@ DEPTH/SCALE: ${depth}`
 
 export async function extractImageFromResponse(
   result: Awaited<ReturnType<ReturnType<typeof getGeminiModel>['generateContent']>>
-): Promise<string | null> {
+): Promise<{ imageUrl: string | null; textFallback: string | null }> {
   const parts = result.response.candidates?.[0]?.content?.parts ?? []
+  let textFallback: string | null = null
+
   for (const part of parts) {
     if ('inlineData' in part && part.inlineData) {
       const { mimeType, data } = part.inlineData as { mimeType: string; data: string }
-      return `data:${mimeType};base64,${data}`
+      return { imageUrl: `data:${mimeType};base64,${data}`, textFallback: null }
+    }
+    if ('text' in part && typeof part.text === 'string' && part.text.trim()) {
+      textFallback = part.text.trim().slice(0, 200)
     }
   }
-  return null
+
+  return { imageUrl: null, textFallback }
 }

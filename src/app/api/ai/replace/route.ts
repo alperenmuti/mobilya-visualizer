@@ -22,12 +22,9 @@ export async function POST(req: NextRequest) {
     const placement = describePlacement(clickX ?? 0.5, clickY ?? 0.5, furnitureName)
     const { mimeType, data } = dataUrlToInlineData(imageDataUrl)
 
-    const prompt = `You are a professional photo compositor. Replace the furniture that the user clicked on with a "${furnitureName}".
+    const prompt = `Task: in this room photo, replace one piece of furniture with a "${furnitureName}". Output a photorealistic image — no text, no labels.
 
-▶▶▶ CLICK POSITION — THIS IS THE TARGET ◀◀◀
-The user clicked at: ${pctX}% from the LEFT edge, ${pctY}% from the TOP edge.
-Identify the furniture piece AT or nearest to this exact pixel — that is the ONLY item to replace.
-▶▶▶▶▶▶▶▶▶▶▶▶▶▶▶▶▶▶▶▶▶▶▶▶▶▶▶▶▶▶◀◀◀◀◀◀◀◀◀◀◀◀◀◀◀◀◀◀◀◀◀◀◀◀◀◀◀◀◀◀
+TARGET: The user clicked at (${pctX}% from left, ${pctY}% from top). The furniture AT or nearest to that pixel is the only item to replace.
 
 ━━━ STEP 1 — ANALYZE THE SCENE ━━━
 Before touching anything, mentally record:
@@ -101,13 +98,15 @@ Output the complete room image at its original resolution with ONLY the identifi
     }
 
     const result = await model.generateContent(parts)
-    const resultUrl = await extractImageFromResponse(result)
+    const { imageUrl, textFallback } = await extractImageFromResponse(result)
 
-    if (!resultUrl) {
+    if (!imageUrl) {
+      const detail = textFallback ? ` (model said: "${textFallback}")` : ''
+      console.error('Gemini returned no image' + detail)
       throw new Error('Gemini görüntü üretemedi. Lütfen tekrar deneyin.')
     }
 
-    return Response.json({ resultUrl })
+    return Response.json({ resultUrl: imageUrl })
   } catch (err) {
     console.error('AI replace error:', err)
     return Response.json({ error: (err as Error).message }, { status: 500 })
