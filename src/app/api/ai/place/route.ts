@@ -19,59 +19,49 @@ export async function POST(req: NextRequest) {
     const placement = describePlacement(clickX ?? 0.5, clickY ?? 0.7, furnitureName)
     const { mimeType, data } = dataUrlToInlineData(imageDataUrl)
 
-    const prompt = `You are a professional photo compositor performing a precise surgical edit on a room photograph. Your task is to add one piece of furniture so that the result is completely indistinguishable from a real photograph.
+    const prompt = `You are a professional photo compositor. Add a "${furnitureName}" to this room photo at the exact location the user selected.
 
-━━━ STEP 1 — ANALYZE THE SCENE BEFORE DRAWING ━━━
-Before making any change, mentally note:
-A) Where is the floor surface? Trace its edges and perspective lines.
-B) What is the camera eye level? (Look for the horizon line — where walls meet at eye level.)
-C) WALL POSITIONS: Locate the left wall surface, right wall surface, and back wall surface in the image. Find the exact line where each wall meets the floor (the floor-wall junction). This is critical for furniture placement.
-D) Where are existing shadows? Note their direction and angle precisely.
-E) What is the scale reference? (A standard door is ~200cm tall; ceiling ~250cm. Use this to calibrate.)
-F) What is the floor material and texture (wood, tile, carpet, concrete)?
+▶▶▶ POSITION LOCK — THIS IS THE MOST IMPORTANT INSTRUCTION ◀◀◀
+The user clicked at: ${pctX}% from the LEFT edge, ${pctY}% from the TOP edge.
+This pixel is the floor contact point. The center of the furniture's base MUST land here.
+Do NOT place the furniture where you think it "looks better." The user's click is final.
+▶▶▶▶▶▶▶▶▶▶▶▶▶▶▶▶▶▶▶▶▶▶▶▶▶▶▶▶▶▶▶▶◀◀◀◀◀◀◀◀◀◀◀◀◀◀◀◀◀◀◀◀◀◀◀◀◀◀◀◀◀◀◀◀
 
-━━━ STEP 2 — FLOOR + WALL CONTACT ━━━
+━━━ STEP 1 — READ THE SCENE ━━━
+Before placing anything, analyze:
+A) Floor surface — perspective vanishing lines, material, texture.
+B) Camera eye level — find the horizon line.
+C) Floor-wall junctions — exact line where floor meets each wall.
+D) Shadow direction and angle — note the light source.
+E) Scale reference — door ~200cm, ceiling ~250cm.
+
+━━━ STEP 2 — COMMIT TO THE POSITION ━━━
 ${placement}
 
-FAILURE CONDITIONS — if any of these are true, the output is WRONG:
-✗ Furniture feet/base do not touch the floor (floating)
-✗ Furniture back has a visible gap between it and the wall
-✗ Furniture appears to pass through the wall or floor
+The furniture's floor footprint center is LOCKED to (${pctX}%, ${pctY}%). Do not drift it.
 
-━━━ STEP 3 — PERSPECTIVE ALIGNMENT ━━━
-The furniture must share the exact vanishing point(s) of the room.
-• Study the floor pattern lines, baseboard, or tile grout lines.
-• The furniture's base edges must be parallel to those floor lines.
-• The furniture's vertical edges must be truly vertical (not tilted).
-• At position (${pctX}%, ${pctY}%): furniture is ${pctY < 45 ? 'far from camera → render it smaller' : pctY > 65 ? 'close to camera → render it larger' : 'at mid-depth → standard scale'}.
+━━━ STEP 3 — PERSPECTIVE & SCALE ━━━
+• Align furniture to the room's vanishing points — base edges parallel to floor lines.
+• Vertical edges truly vertical (not tilted).
+• Scale: sofa ~85cm tall/200cm wide · armchair ~80cm/80cm · wardrobe ~200cm/90cm · dining table ~75cm tall.
 
-━━━ STEP 4 — SCALE CALIBRATION ━━━
-Use your Step 1D reference to size the furniture correctly.
-• A standard sofa is ~85cm tall, ~200cm wide.
-• An armchair is ~80cm tall, ~80cm wide.
-• A wardrobe is ~200cm tall, ~90cm wide.
-• A dining table is ~75cm tall.
-The furniture must look naturally sized relative to doors, windows, and walls visible in the photo.
+━━━ STEP 4 — LIGHTING ━━━
+• Match the room's existing light source direction exactly.
+• Cast a contact shadow on the floor beneath the furniture.
+• Do not change room brightness, color temperature, or ambient light.
 
-━━━ STEP 5 — LIGHTING & SHADOW ━━━
-• Identify the dominant light source direction from Step 1C shadows.
-• The "${furnitureName}" receives light from that SAME direction — same brightness, same color temperature.
-• Cast a contact shadow on the floor directly under the furniture, matching the softness and direction of existing shadows.
-• Do NOT add ambient glow, halo, or diffuse light that doesn't exist in the scene.
+━━━ STEP 5 — STYLE ━━━
+• Real photo → photorealistic. 3D render → match the render style.
+• Match sharpness, grain, depth-of-field, and color profile of the original.
 
-━━━ STEP 6 — STYLE MATCH ━━━
-• If the photo is a real photograph → render the furniture as if photographed.
-• If the photo is a 3D render → render the furniture in matching render style.
-• Match sharpness, noise grain, depth-of-field blur, and color profile of the original.
+━━━ HARD RULES ━━━
+✗ Furniture center must be at (${pctX}%, ${pctY}%) — no repositioning
+✗ All feet/base points touch the floor — no floating
+✗ Do not modify walls, floor, ceiling, windows, doors, or any existing objects
+✗ Do not add pillows, plants, accessories, or extra items
+✗ Do not write any text or labels anywhere in the output image
 
-━━━ ABSOLUTE PROHIBITIONS ━━━
-✗ NO floating — the furniture must touch the floor
-✗ NO modifying walls, ceiling, floor surface, windows, doors, existing furniture
-✗ NO changing room brightness, color, or atmosphere
-✗ NO adding pillows, plants, accessories, or extra objects
-✗ NO tilting the furniture (it must stand upright and level)
-
-Output the complete room image at its original resolution with the "${furnitureName}" composited in.`
+Output the complete room image with the "${furnitureName}" composited in at the specified position.`
 
     const model = getGeminiModel()
     const parts: Part[] = [

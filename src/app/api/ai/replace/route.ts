@@ -22,7 +22,12 @@ export async function POST(req: NextRequest) {
     const placement = describePlacement(clickX ?? 0.5, clickY ?? 0.5, furnitureName)
     const { mimeType, data } = dataUrlToInlineData(imageDataUrl)
 
-    const prompt = `You are a professional photo compositor performing a precise surgical swap on a room photograph. Replace exactly one piece of furniture while keeping every other pixel identical.
+    const prompt = `You are a professional photo compositor. Replace the furniture that the user clicked on with a "${furnitureName}".
+
+▶▶▶ CLICK POSITION — THIS IS THE TARGET ◀◀◀
+The user clicked at: ${pctX}% from the LEFT edge, ${pctY}% from the TOP edge.
+Identify the furniture piece AT or nearest to this exact pixel — that is the ONLY item to replace.
+▶▶▶▶▶▶▶▶▶▶▶▶▶▶▶▶▶▶▶▶▶▶▶▶▶▶▶▶▶▶◀◀◀◀◀◀◀◀◀◀◀◀◀◀◀◀◀◀◀◀◀◀◀◀◀◀◀◀◀◀
 
 ━━━ STEP 1 — ANALYZE THE SCENE ━━━
 Before touching anything, mentally record:
