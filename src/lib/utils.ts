@@ -142,6 +142,21 @@ export function compositeFurnitureOnImage(
           const ctx = canvas.getContext('2d')
           if (!ctx) { reject(new Error('canvas yok')); return }
           ctx.drawImage(room, 0, 0, W, H)
+
+          // Soft elliptical contact shadow at the base so it reads as grounded,
+          // not a floating sticker. Drawn before the furniture so it sits under it.
+          const baseCx = left + drawW / 2
+          const baseCy = top + drawH
+          const shadowW = drawW * 0.82
+          const shadowH = Math.max(8, drawH * 0.10)
+          ctx.save()
+          try { ctx.filter = 'blur(10px)' } catch {}
+          ctx.fillStyle = 'rgba(0,0,0,0.30)'
+          ctx.beginPath()
+          ctx.ellipse(baseCx, baseCy - shadowH * 0.2, shadowW / 2, shadowH / 2, 0, 0, Math.PI * 2)
+          ctx.fill()
+          ctx.restore()
+
           ctx.drawImage(cut, minX, minY, bw, bh, left, top, drawW, drawH)
           resolve(canvas.toDataURL('image/jpeg', 0.92))
         } catch (e) { reject(e as Error) }

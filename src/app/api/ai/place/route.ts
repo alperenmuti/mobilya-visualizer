@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import type { Part } from '@google/generative-ai'
-import { runFluxKontextMulti } from '@/lib/fal'
+import { runFluxKontextMulti, cutoutProductDataUrl, detectFurniture } from '@/lib/fal'
 import { engineerPlacement } from '@/lib/placement'
 import { getGeminiModel, dataUrlToInlineData, extractImageFromResponse } from '@/lib/gemini'
 
@@ -9,7 +9,22 @@ export const maxDuration = 60
 
 export async function POST(req: NextRequest) {
   try {
-    const { imageDataUrl, furnitureName, furnitureImageUrl, clickX, clickY, markerDrawn } = await req.json()
+    const { imageDataUrl, furnitureName, furnitureImageUrl, clickX, clickY, markerDrawn, step } = await req.json()
+
+    // ── Paste flow: return the background-removed product cut-out.
+    //    The browser then composites it at the exact click (guaranteed position)
+    //    and draws a contact shadow — no AI repositioning, no sharp.
+    if (step === 'cutout') {
+      if (!furnitureImageUrl) return Response.json({ error: 'Mobilya görseli yok' }, { status: 400 })
+      if (!process.env.FAL_KEY) return Response.json({ error: 'FAL_KEY tanımlı değil' }, { status: 500 })
+      try {
+        const cutoutUrl = await cutoutProductDataUrl(furnitureImageUrl)
+        const widthFraction = detectFurniture(furnitureName ?? '').wFrac
+        return Response.json({ cutoutUrl, widthFraction })
+      } catch (e) {
+        return Response.json({ error: `Mobilya görseli hazırlanamadı: ${(e as Error).message}` }, { status: 500 })
+      }
+    }
 
     if (!imageDataUrl || !furnitureName) {
       return Response.json({ error: 'Eksik parametreler' }, { status: 400 })
