@@ -26,40 +26,39 @@ export async function POST(req: NextRequest) {
 
     const prompt = `Task: add a "${furnitureName}" to this room photo. Output a photorealistic composite image — no text, no labels.
 
-━━━ STEP 1 — FIND THE ORANGE MARKER ━━━
-Look at the room image. There is a bright orange circle with crosshairs drawn on the floor.
-That orange marker is the EXACT spot where the user wants the furniture placed.
-
-━━━ STEP 2 — PLACE THE FURNITURE ON THE MARKER ━━━
-→ Place the "${furnitureName}" with its base center directly on the orange marker.
-→ The orange marker must be completely hidden under the furniture in the output — it must not be visible.
-→ Do NOT move the furniture to any other position. The marker is the final, locked anchor.
+PLACEMENT — HIGHEST PRIORITY:
+There is a bright orange circle with crosshairs on the floor of the image — that is the exact spot the user chose.
+Place the "${furnitureName}" with its base center directly on that orange marker. The marker must be completely hidden under the furniture in the output. Do not move the furniture anywhere else.
 
 ${placement}
 
-━━━ STEP 3 — SCENE ANALYSIS ━━━
-Before compositing, observe:
-- Floor perspective vanishing lines and material/texture.
-- Floor-wall junctions for each wall.
-- Shadow direction and light source angle.
-- Scale reference: door ~200cm tall, ceiling height ~250cm.
+Scene analysis (do before placing):
+- Trace the floor perspective vanishing lines.
+- Find floor-wall junctions for each wall.
+- Note shadow direction, light source angle.
+- Scale reference: door ~200cm tall, ceiling ~250cm.
+- Floor material and texture.
 
-━━━ STEP 4 — PERSPECTIVE & SCALE ━━━
+Perspective & scale:
 - Align furniture to the room vanishing points; base edges parallel to floor lines.
 - Vertical edges truly vertical.
 - Sizes: sofa ~85cm tall / 200cm wide; armchair ~80cm / 80cm; wardrobe ~200cm / 90cm; dining table ~75cm tall.
 - Depth scale: ${pctY < 40 ? 'far from camera — render smaller' : pctY > 65 ? 'close to camera — render larger' : 'mid-depth — standard scale'}.
 
-━━━ STEP 5 — LIGHTING ━━━
-- Match the existing light source direction. Add a contact shadow beneath the furniture.
+Lighting:
+- Match existing light source direction. Add contact shadow beneath furniture.
 - Do not change room brightness, color temperature, or ambient light.
 
-━━━ ABSOLUTE RULES ━━━
-✗ Orange marker must be hidden under the furniture — not visible in output
-✗ Furniture base must touch the floor — no floating
-✗ Do not alter walls, floor, ceiling, windows, doors, or any existing objects
-✗ Do not add accessories, pillows, or plants
-✗ Do not write any text or labels in the output image`
+Style:
+- Real photo: photorealistic rendering. 3D render: match its render style.
+- Match sharpness, grain, depth-of-field, and color profile.
+
+Rules:
+- Orange marker must be hidden under the furniture — no repositioning
+- All feet/base must touch the floor — no floating
+- Do not alter walls, floor, ceiling, windows, doors, or any existing objects
+- Do not add accessories, pillows, or plants
+- Do not write any text or labels in the output image`
 
     const model = getGeminiModel()
     const parts: Part[] = [

@@ -29,12 +29,9 @@ export async function POST(req: NextRequest) {
 
     const prompt = `Task: in this room photo, replace one piece of furniture with a "${furnitureName}". Output a photorealistic image — no text, no labels.
 
-━━━ STEP 1 — FIND THE ORANGE MARKER ━━━
-Look at the room image. There is a bright orange circle with crosshairs drawn on or near a piece of furniture.
-The furniture that the orange marker is ON or NEAREST TO is the ONLY item you will replace.
-Identify it now (sofa, chair, wardrobe, table, etc.) before proceeding.
+TARGET: There is a bright orange crosshair marker visible in the image. The furniture AT or nearest to that orange marker is the only item to replace. Remove both the marker and that furniture, then place the "${furnitureName}" in the same position.
 
-━━━ STEP 2 — ANALYZE THE SCENE ━━━
+━━━ STEP 1 — ANALYZE THE SCENE ━━━
 Before touching anything, mentally record:
 A) The floor surface — its perspective lines, material, and texture.
 B) The camera eye level — where is the horizon in this photo?
@@ -42,14 +39,14 @@ C) WALL POSITIONS: Find the left wall, right wall, and back wall surfaces. Find 
 D) The shadow direction and angle — which way do all shadows fall?
 E) The scale reference — door height (~200cm), ceiling height (~250cm).
 
-━━━ STEP 3 — REMOVE THE TARGET CLEANLY ━━━
+━━━ STEP 2 — REMOVE THE TARGET CLEANLY ━━━
 Erase the orange marker AND the identified furniture completely.
 Fill its former space with the background that logically belongs there:
 • Floor area below it → reconstruct the floor texture matching the surrounding floor exactly (same color, same perspective, same material grain/pattern).
 • Wall area behind it → reconstruct the wall seamlessly.
 The reconstruction must be invisible — as if the original furniture was never there.
 
-━━━ STEP 4 — PLACE THE REPLACEMENT ━━━
+━━━ STEP 3 — PLACE THE REPLACEMENT ━━━
 ${placement}
 
 FOOTPRINT MATCHING: The new "${furnitureName}" occupies the SAME floor footprint as the removed item.
@@ -63,13 +60,13 @@ FAILURE CONDITIONS — any of these = WRONG output:
 ✗ New furniture appears in a different wall/position than the marked item
 ✗ Orange marker is still visible anywhere in the output
 
-━━━ STEP 5 — PERSPECTIVE & SCALE ━━━
+━━━ STEP 4 — PERSPECTIVE & SCALE ━━━
 • Align the replacement to the same vanishing point(s) as the removed furniture.
 • Match the scale of the original item exactly — if the original was large, the replacement is large.
 • Vertical edges of the replacement must be truly vertical (not tilted).
-• Calibrate using your Step 1D scale reference.
+• Calibrate using your Step 1E scale reference.
 
-━━━ STEP 6 — LIGHTING INTEGRATION ━━━
+━━━ STEP 5 — LIGHTING INTEGRATION ━━━
 • The "${furnitureName}" receives light from the SAME direction as the original item and the rest of the room.
 • Cast a floor contact shadow matching the direction, length, and softness of all other shadows.
 • Do NOT change the room's ambient lighting, brightness, or color temperature.
