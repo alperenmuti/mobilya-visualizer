@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import type { Part } from '@google/generative-ai'
-import { runFluxKontextMulti } from '@/lib/fal'
+import { runFluxKontextMulti, pasteFurnitureAndRefine } from '@/lib/fal'
 import { engineerPlacement } from '@/lib/placement'
 import { getGeminiModel, dataUrlToInlineData, extractImageFromResponse } from '@/lib/gemini'
 
@@ -9,31 +9,31 @@ export const maxDuration = 60
 
 export async function POST(req: NextRequest) {
   try {
-    const { imageDataUrl, furnitureName, furnitureImageUrl, clickX, clickY, markerDrawn } = await req.json()
+    const { imageDataUrl, furnitureName, furnitureImageUrl, clickX, clickY } = await req.json()
 
     if (!imageDataUrl || !furnitureName) {
       return Response.json({ error: 'Eksik parametreler' }, { status: 400 })
     }
 
-    // Prompt-engineer layer: turn the click point into a precise placement brief.
     const hasClick = typeof clickX === 'number' && typeof clickY === 'number'
+    // Prompt-engineer layer (used by the no-click / Gemini fallback path).
     const spec = hasClick ? engineerPlacement(clickX, clickY) : null
     const hint = spec
       ? spec.description
       : 'in the most natural, well-composed spot in the room'
 
-    // ── Primary: FLUX.1 Kontext multi-image — places the ACTUAL product ────
-    // Needs the furniture's catalog photo so the output contains the real item.
+    // ── Primary: cut out the real product, paste it exactly where the user
+    //    clicked (correct position + scale), then let FLUX refine it. ───────
     if (process.env.FAL_KEY && furnitureImageUrl) {
       try {
-        const markerLine = markerDrawn
-          ? `There is a small orange marker dot on the floor of the first image — that dot is the exact target spot. Place the furniture so its base/feet land precisely on that dot, and completely hide the dot under the furniture.`
-          : ''
-        const scaleLine = spec ? ` Scale: ${spec.depthScale}.` : ''
-        const prompt = `The first image is a room. The second image is a "${furnitureName}". Place that exact piece of furniture from the second image into the room, positioned ${hint}${scaleLine} ${markerLine}
-Keep the room completely unchanged — same walls, floor, ceiling, windows, doors, lighting and camera angle. Reproduce the furniture's real shape, colour, upholstery and material from the second image; render it at realistic real-world scale and perspective for that exact position, with all feet flat on the floor and a natural contact shadow matching the room's light. Output only the edited room photo — no markers, no other objects, people or text.`
-        const resultUrl = await runFluxKontextMulti({ roomDataUrl: imageDataUrl, furnitureImageUrl, prompt })
-        return Response.json({ resultUrl, engine: 'flux' })
+        const resultUrl = hasClick
+          ? await pasteFurnitureAndRefine({ roomDataUrl: imageDataUrl, furnitureImageUrl, furnitureName, x: clickX, y: clickY })
+          : await runFluxKontextMulti({
+              roomDataUrl: imageDataUrl,
+              furnitureImageUrl,
+              prompt: `The first image is a room. The second image is a "${furnitureName}". Place that exact piece of furniture from the second image into the room, positioned ${hint}. Keep the room completely unchanged. Reproduce the furniture's real shape, colour and material; render it at realistic scale and perspective, feet on the floor, natural contact shadow. Output only the edited room photo — no other objects or text.`,
+            })
+        return Response.json({ resultUrl, engine: hasClick ? 'flux-paste' : 'flux' })
       } catch (e) {
         const msg = (e as Error).message
         console.error('FLUX place error:', msg)

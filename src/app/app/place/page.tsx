@@ -4,7 +4,6 @@ import Link from 'next/link'
 import { ArrowLeft, Sparkles, Download, RotateCcw, AlertCircle } from 'lucide-react'
 import RoomCanvas from '@/components/RoomCanvas'
 import FurnitureList from '@/components/FurnitureList'
-import { drawMarkerOnImage } from '@/lib/utils'
 import type { FurnitureItem, ClickPoint } from '@/lib/types'
 
 type Job =
@@ -48,21 +47,12 @@ export default function PlaceFurniturePage() {
     if (!imageDataUrl || !clickPoint || !selectedFurniture) return
     setJob({ status: 'processing' })
 
-    // Draw the anchor marker in the browser; if it fails, send the plain image.
-    let markedImage = imageDataUrl
-    let markerDrawn = false
-    try {
-      markedImage = await drawMarkerOnImage(imageDataUrl, clickPoint.x, clickPoint.y)
-      markerDrawn = true
-    } catch {}
-
     try {
       const res = await fetch('/api/ai/place', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          imageDataUrl: markedImage,
-          markerDrawn,
+          imageDataUrl,
           clickX: clickPoint.x,
           clickY: clickPoint.y,
           furnitureName: selectedFurniture.name,
