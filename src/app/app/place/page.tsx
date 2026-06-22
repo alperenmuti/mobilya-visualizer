@@ -4,8 +4,7 @@ import Link from 'next/link'
 import { ArrowLeft, Sparkles, Download, RotateCcw, AlertCircle } from 'lucide-react'
 import RoomCanvas from '@/components/RoomCanvas'
 import FurnitureList from '@/components/FurnitureList'
-import { compositeFurnitureOnImage } from '@/lib/utils'
-import type { FurnitureItem, ClickPoint } from '@/lib/types'
+import type { FurnitureItem } from '@/lib/types'
 
 type Job =
   | { status: 'idle' }
@@ -16,7 +15,6 @@ type Job =
 export default function PlaceFurniturePage() {
   const [brand, setBrand] = useState<string | null>(null)
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null)
-  const [clickPoint, setClickPoint] = useState<ClickPoint | null>(null)
   const [selectedFurniture, setSelectedFurniture] = useState<FurnitureItem | null>(null)
   const [furniture, setFurniture] = useState<FurnitureItem[]>([])
   const [furnitureLoading, setFurnitureLoading] = useState(true)
@@ -38,44 +36,34 @@ export default function PlaceFurniturePage() {
 
   const handleImageLoad = useCallback((_file: File, dataUrl: string) => {
     setImageDataUrl(dataUrl)
-    setClickPoint(null)
     setJob({ status: 'idle' })
   }, [])
 
-  const canGenerate = !!(imageDataUrl && clickPoint && selectedFurniture) && job.status !== 'processing'
+  const canGenerate = !!(imageDataUrl && selectedFurniture) && job.status !== 'processing'
 
   const handleGenerate = async () => {
-    if (!imageDataUrl || !clickPoint || !selectedFurniture) return
+    if (!imageDataUrl || !selectedFurniture) return
     setJob({ status: 'processing' })
 
     try {
-      // Step 1 — server removes the product's background (returns a cut-out).
-      const cutRes = await fetch('/api/ai/place', {
+      const res = await fetch('/api/ai/place', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          step: 'cutout',
+          imageDataUrl,
           furnitureName: selectedFurniture.name,
           furnitureImageUrl: selectedFurniture.image_url,
         }),
       })
-      const cut = await cutRes.json()
-      if (!cutRes.ok || !cut.cutoutUrl) throw new Error(cut.error ?? 'Mobilya görseli hazırlanamadı.')
-
-      // Step 2 — composite it onto the room EXACTLY where the user clicked,
-      // scaled to depth, with a contact shadow. This is the final result —
-      // position is guaranteed, no AI repositioning.
-      const result = await compositeFurnitureOnImage(
-        imageDataUrl, cut.cutoutUrl, clickPoint.x, clickPoint.y, cut.widthFraction ?? 0.3,
-      )
-      setJob({ status: 'done', resultUrl: result })
+      const data = await res.json()
+      if (!res.ok || !data.resultUrl) throw new Error(data.error ?? 'AI görüntü oluşturamadı. Tekrar deneyin.')
+      setJob({ status: 'done', resultUrl: data.resultUrl })
     } catch (err) {
       setJob({ status: 'error', error: (err as Error).message })
     }
   }
 
   const handleReset = () => {
-    setClickPoint(null)
     setJob({ status: 'idle' })
   }
 
@@ -155,9 +143,7 @@ export default function PlaceFurniturePage() {
         <StepDivider />
         <Step n={2} label="Mobilya" done={!!selectedFurniture} />
         <StepDivider />
-        <Step n={3} label="Konum" done={!!clickPoint} />
-        <StepDivider />
-        <Step n={4} label="Oluştur" done={isDone} />
+        <Step n={3} label="Oluştur" done={isDone} />
       </div>
 
       {/* Main layout */}
@@ -166,10 +152,10 @@ export default function PlaceFurniturePage() {
         <div className="flex-1 p-4 overflow-hidden relative">
           <RoomCanvas
             mode="place"
+            selectable={false}
             onImageLoad={handleImageLoad}
-            onPointSelect={isProcessing ? () => {} : setClickPoint}
+            onPointSelect={() => {}}
             imageUrl={imageDataUrl}
-            clickPoint={isProcessing ? null : clickPoint}
             resultUrl={resultUrl}
             disabled={isProcessing}
           />
