@@ -231,6 +231,41 @@ export async function runFluxKontext(params: {
   return resultToDataUrl(outputUrl)
 }
 
+// ─── FLUX Kontext multi-image — for PLACE (insert a real product) ───────────
+
+/**
+ * Uses FLUX Kontext (multi-image) to drop a SPECIFIC product into a room.
+ * Feeds two images — the room and the furniture's catalog photo — so the
+ * output contains the actual selected product, not a generic guess from text.
+ */
+export async function runFluxKontextMulti(params: {
+  roomDataUrl: string
+  furnitureImageUrl: string
+  prompt: string
+}): Promise<string> {
+  configure()
+
+  // Room is a data URL (uploaded photo) → push to fal storage.
+  // Furniture is usually a public catalog URL → pass through; upload if it's a data URL.
+  const roomUrl = await uploadDataUrl(params.roomDataUrl)
+  const furnitureUrl = params.furnitureImageUrl.startsWith('data:')
+    ? await uploadDataUrl(params.furnitureImageUrl)
+    : params.furnitureImageUrl
+
+  const result = await fal.subscribe('fal-ai/flux-pro/kontext/max/multi', {
+    input: {
+      prompt:        params.prompt,
+      image_urls:    [roomUrl, furnitureUrl],
+      safety_tolerance: '3',
+      output_format: 'jpeg',
+    },
+  })
+
+  const outputUrl = (result.data as FluxImageOutput).images?.[0]?.url
+  if (!outputUrl) throw new Error('fal.ai görüntü üretemedi')
+  return resultToDataUrl(outputUrl)
+}
+
 // ─── Marker drawing (used by Kontext replace path) ──────────────────────────
 
 async function drawMarker(imageDataUrl: string, cx: number, cy: number): Promise<string> {

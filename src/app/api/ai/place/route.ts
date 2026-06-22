@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import type { Part } from '@google/generative-ai'
-import { runFluxKontext } from '@/lib/fal'
+import { runFluxKontextMulti } from '@/lib/fal'
 import { getGeminiModel, dataUrlToInlineData, extractImageFromResponse } from '@/lib/gemini'
 
 // FLUX Kontext / Gemini image calls can take 15-40s — give the function room.
@@ -18,11 +18,12 @@ export async function POST(req: NextRequest) {
       ? placementHint.trim()
       : 'in the most natural, well-composed spot in the room'
 
-    // ── Primary: FLUX.1 Kontext (instruction-based image editing) ──────────
-    if (process.env.FAL_KEY) {
+    // ── Primary: FLUX.1 Kontext multi-image — places the ACTUAL product ────
+    // Needs the furniture's catalog photo so the output contains the real item.
+    if (process.env.FAL_KEY && furnitureImageUrl) {
       try {
-        const prompt = `Add a photorealistic ${furnitureName} to this empty room, placed ${hint}. Keep the room itself completely unchanged — same walls, floor, ceiling, windows, doors, lighting and camera angle. The ${furnitureName} must rest naturally on the floor at correct real-world scale and perspective, with realistic contact shadows that match the room's light. Do not add any other objects, people or text.`
-        const resultUrl = await runFluxKontext({ imageDataUrl, prompt })
+        const prompt = `The first image is an empty room. The second image is a "${furnitureName}". Place that exact piece of furniture from the second image into the room from the first image, positioned ${hint}. Keep the room completely unchanged — same walls, floor, ceiling, windows, doors, lighting and camera angle. Reproduce the furniture's real shape, colour, upholstery and material from the second image; render it at realistic real-world scale and perspective, with all feet flat on the floor and a natural contact shadow matching the room's light. Output only the edited room photo — no other objects, people or text.`
+        const resultUrl = await runFluxKontextMulti({ roomDataUrl: imageDataUrl, furnitureImageUrl, prompt })
         return Response.json({ resultUrl, engine: 'flux' })
       } catch (e) {
         console.error('FLUX place error, falling back:', (e as Error).message)
