@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { ArrowLeft, Sparkles, Download, RotateCcw, AlertCircle } from 'lucide-react'
 import RoomCanvas from '@/components/RoomCanvas'
 import FurnitureList from '@/components/FurnitureList'
+import { drawMarkerOnImage } from '@/lib/utils'
 import type { FurnitureItem, ClickPoint } from '@/lib/types'
 
 type Job =
@@ -15,6 +16,7 @@ type Job =
 export default function PlaceFurniturePage() {
   const [brand, setBrand] = useState<string | null>(null)
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null)
+  const [clickPoint, setClickPoint] = useState<ClickPoint | null>(null)
   const [selectedFurniture, setSelectedFurniture] = useState<FurnitureItem | null>(null)
   const [furniture, setFurniture] = useState<FurnitureItem[]>([])
   const [furnitureLoading, setFurnitureLoading] = useState(true)
@@ -36,24 +38,35 @@ export default function PlaceFurniturePage() {
 
   const handleImageLoad = useCallback((_file: File, dataUrl: string) => {
     setImageDataUrl(dataUrl)
+    setClickPoint(null)
     setJob({ status: 'idle' })
   }, [])
 
-  const canGenerate = !!(imageDataUrl && selectedFurniture) && job.status !== 'processing'
+  const canGenerate = !!(imageDataUrl && clickPoint && selectedFurniture) && job.status !== 'processing'
 
   const handleGenerate = async () => {
-    if (!imageDataUrl || !selectedFurniture) return
+    if (!imageDataUrl || !clickPoint || !selectedFurniture) return
     setJob({ status: 'processing' })
+
+    // Draw the anchor marker in the browser; if it fails, send the plain image.
+    let markedImage = imageDataUrl
+    let markerDrawn = false
+    try {
+      markedImage = await drawMarkerOnImage(imageDataUrl, clickPoint.x, clickPoint.y)
+      markerDrawn = true
+    } catch {}
 
     try {
       const res = await fetch('/api/ai/place', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          imageDataUrl,
+          imageDataUrl: markedImage,
+          markerDrawn,
+          clickX: clickPoint.x,
+          clickY: clickPoint.y,
           furnitureName: selectedFurniture.name,
           furnitureImageUrl: selectedFurniture.image_url,
-          // no placementHint → AI chooses the most natural spot
         }),
       })
       const data = await res.json()
@@ -65,6 +78,7 @@ export default function PlaceFurniturePage() {
   }
 
   const handleReset = () => {
+    setClickPoint(null)
     setJob({ status: 'idle' })
   }
 
@@ -144,7 +158,9 @@ export default function PlaceFurniturePage() {
         <StepDivider />
         <Step n={2} label="Mobilya" done={!!selectedFurniture} />
         <StepDivider />
-        <Step n={3} label="Oluştur" done={isDone} />
+        <Step n={3} label="Konum" done={!!clickPoint} />
+        <StepDivider />
+        <Step n={4} label="Oluştur" done={isDone} />
       </div>
 
       {/* Main layout */}
@@ -153,10 +169,10 @@ export default function PlaceFurniturePage() {
         <div className="flex-1 p-4 overflow-hidden relative">
           <RoomCanvas
             mode="place"
-            selectable={false}
             onImageLoad={handleImageLoad}
-            onPointSelect={() => {}}
+            onPointSelect={isProcessing ? () => {} : setClickPoint}
             imageUrl={imageDataUrl}
+            clickPoint={isProcessing ? null : clickPoint}
             resultUrl={resultUrl}
             disabled={isProcessing}
           />
