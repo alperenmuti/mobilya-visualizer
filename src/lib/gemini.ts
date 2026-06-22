@@ -31,53 +31,50 @@ export function describePlacement(x: number, y: number, furnitureName: string): 
   const pctX = Math.round(x * 100)
   const pctY = Math.round(y * 100)
 
-  const nearLeft  = x < 0.30
-  const nearRight = x > 0.70
-  const nearBack  = y < 0.42
-  const cornerL   = nearLeft  && y < 0.33
-  const cornerR   = nearRight && y < 0.33
+  // Plain-language horizontal band — gives the model a verbal anchor alongside the marker.
+  const horizontal =
+    x < 0.20 ? 'at the far left edge of the room' :
+    x < 0.40 ? 'on the left side of the room, left of center' :
+    x < 0.60 ? 'horizontally centered in the room' :
+    x < 0.80 ? 'on the right side of the room, right of center' :
+               'at the far right edge of the room'
 
-  let zone: string
+  // Depth band from vertical position — lower in frame = closer to camera = larger.
+  const depth =
+    y < 0.40 ? 'deep in the background, far from the camera, so it must be rendered SMALL' :
+    y < 0.65 ? 'in the middle of the room at mid-distance, rendered at MEDIUM size' :
+               'in the foreground, close to the camera, so it must be rendered LARGE'
+
+  // Wall contact only when the click is genuinely near a wall.
+  const nearLeft  = x < 0.22
+  const nearRight = x > 0.78
+  const nearBack  = y < 0.30
   let wallRule: string
   let facing: string
-
-  if (cornerL) {
-    zone     = 'top-left corner where the left wall and back wall meet'
-    wallRule = `Left side of the furniture is flush against the left wall. Back is flush against the back wall. Zero gap on both.`
-    facing   = 'Faces diagonally toward the room center (right + toward camera).'
-  } else if (cornerR) {
-    zone     = 'top-right corner where the right wall and back wall meet'
-    wallRule = `Right side of the furniture is flush against the right wall. Back is flush against the back wall. Zero gap on both.`
-    facing   = 'Faces diagonally toward the room center (left + toward camera).'
+  if (nearBack && nearLeft) {
+    wallRule = 'Tuck it into the back-left corner: left side flush to the left wall, back flush to the back wall.'
+    facing   = 'Faces diagonally toward the room center.'
+  } else if (nearBack && nearRight) {
+    wallRule = 'Tuck it into the back-right corner: right side flush to the right wall, back flush to the back wall.'
+    facing   = 'Faces diagonally toward the room center.'
   } else if (nearLeft) {
-    zone     = 'against the left wall'
-    wallRule = `Back of the furniture is pressed flat against the left wall — continuous contact, zero gap.`
+    wallRule = 'Back of the furniture is flush against the left wall, zero gap.'
     facing   = 'Faces right, toward the room interior.'
   } else if (nearRight) {
-    zone     = 'against the right wall'
-    wallRule = `Back of the furniture is pressed flat against the right wall — continuous contact, zero gap.`
+    wallRule = 'Back of the furniture is flush against the right wall, zero gap.'
     facing   = 'Faces left, toward the room interior.'
   } else if (nearBack) {
-    zone     = 'against the back (far) wall'
-    wallRule = `Back of the furniture is pressed flat against the back wall — continuous contact, zero gap.`
+    wallRule = 'Back of the furniture is flush against the back wall, zero gap.'
     facing   = 'Faces the camera.'
   } else {
-    zone     = 'open floor, away from walls'
-    wallRule = `Freestanding — no wall contact needed. Leave natural spacing on all sides.`
+    wallRule = 'Freestanding on open floor — natural spacing, no wall contact needed.'
     facing   = 'Faces the camera.'
   }
 
-  const depth = y < 0.38
-    ? 'Far from camera — furniture appears SMALLER due to perspective.'
-    : y > 0.68
-    ? 'Close to camera — furniture appears LARGER due to perspective.'
-    : 'Mid-depth — standard scale.'
-
-  return `ZONE: ${zone}.
-ANCHOR — LOCKED: The center of the furniture's floor footprint is at pixel (${pctX}% from left, ${pctY}% from top). Do NOT drift the furniture from this point.
-WALL RULE: ${wallRule}
-FACING: ${facing}
-DEPTH/SCALE: ${depth}`
+  return `EXACT POSITION (highest priority): put the "${furnitureName}" ${horizontal}, ${depth}. Its floor contact point sits exactly on the orange marker at ${pctX}% from the left and ${pctY}% from the top. Do NOT center it or move it elsewhere — honor this spot precisely.
+${wallRule}
+${facing}
+Follow the room's floor perspective so the furniture sits naturally at that depth, with all feet on the ground.`
 }
 
 /**

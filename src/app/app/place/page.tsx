@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Sparkles, Download, RotateCcw, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { ArrowLeft, Sparkles, Download, RotateCcw, AlertCircle } from 'lucide-react'
 import RoomCanvas from '@/components/RoomCanvas'
 import FurnitureList from '@/components/FurnitureList'
 import { drawMarkerOnImage } from '@/lib/utils'
@@ -9,17 +9,9 @@ import type { FurnitureItem, ClickPoint } from '@/lib/types'
 
 type Job =
   | { status: 'idle' }
-  | { status: 'processing'; done: number }
-  | { status: 'selecting' }
+  | { status: 'processing' }
   | { status: 'done'; resultUrl: string }
   | { status: 'error'; error: string }
-
-// 3 parallel calls with slight X offsets so each variation lands in a slightly different spot
-const OFFSETS = [
-  { dx: 0,     dy: 0 },
-  { dx: -0.05, dy: 0 },
-  { dx:  0.05, dy: 0 },
-]
 
 export default function PlaceFurniturePage() {
   const [brand, setBrand] = useState<string | null>(null)
@@ -29,7 +21,6 @@ export default function PlaceFurniturePage() {
   const [furniture, setFurniture] = useState<FurnitureItem[]>([])
   const [furnitureLoading, setFurnitureLoading] = useState(true)
   const [job, setJob] = useState<Job>({ status: 'idle' })
-  const [variations, setVariations] = useState<(string | null)[]>([null, null, null])
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -49,84 +40,53 @@ export default function PlaceFurniturePage() {
     setImageDataUrl(dataUrl)
     setClickPoint(null)
     setJob({ status: 'idle' })
-    setVariations([null, null, null])
   }, [])
 
   const canGenerate = !!(imageDataUrl && clickPoint && selectedFurniture) && job.status !== 'processing'
 
   const handleGenerate = async () => {
     if (!imageDataUrl || !clickPoint || !selectedFurniture) return
+    setJob({ status: 'processing' })
 
-    const results: (string | null)[] = [null, null, null]
-    setVariations([null, null, null])
-    setJob({ status: 'processing', done: 0 })
+    const cx = clickPoint.x
+    const cy = clickPoint.y
 
-    let doneCount = 0
-    let lastError = ''
+    // Draw the anchor marker in the browser (no server Sharp dependency).
+    // If it fails for any reason, send the plain image and let the server fall back.
+    let markedImage = imageDataUrl
+    let markerDrawn = false
+    try {
+      markedImage = await drawMarkerOnImage(imageDataUrl, cx, cy)
+      markerDrawn = true
+    } catch {}
 
-    await Promise.all(
-      OFFSETS.map(async ({ dx, dy }, i) => {
-        const cx = Math.max(0.05, Math.min(0.95, clickPoint.x + dx))
-        const cy = Math.max(0.05, Math.min(0.95, clickPoint.y + dy))
-
-        // Draw the anchor marker in the browser (no server Sharp dependency).
-        // If it fails for any reason, send the plain image and let the server fall back.
-        let markedImage = imageDataUrl
-        let markerDrawn = false
-        try {
-          markedImage = await drawMarkerOnImage(imageDataUrl, cx, cy)
-          markerDrawn = true
-        } catch {}
-
-        return fetch('/api/ai/place', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            imageDataUrl: markedImage,
-            markerDrawn,
-            clickX: cx,
-            clickY: cy,
-            furnitureName: selectedFurniture.name,
-            furnitureImageUrl: selectedFurniture.image_url,
-          }),
-        })
-          .then(r => r.json())
-          .then(data => {
-            if (data.resultUrl) {
-              results[i] = data.resultUrl
-              setVariations([...results])
-            } else if (data.error) {
-              lastError = data.error
-            }
-          })
-          .catch(err => { lastError = err?.message ?? 'ağ hatası' })
-          .finally(() => {
-            doneCount++
-            setJob({ status: 'processing', done: doneCount })
-          })
+    try {
+      const res = await fetch('/api/ai/place', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageDataUrl: markedImage,
+          markerDrawn,
+          clickX: cx,
+          clickY: cy,
+          furnitureName: selectedFurniture.name,
+          furnitureImageUrl: selectedFurniture.image_url,
+        }),
       })
-    )
-
-    const ok = results.filter(Boolean)
-    if (ok.length === 0) {
-      setJob({ status: 'error', error: lastError || 'AI görüntü oluşturamadı. Tekrar deneyin.' })
-    } else {
-      setJob({ status: 'selecting' })
+      const data = await res.json()
+      if (!res.ok || !data.resultUrl) throw new Error(data.error ?? 'AI görüntü oluşturamadı. Tekrar deneyin.')
+      setJob({ status: 'done', resultUrl: data.resultUrl })
+    } catch (err) {
+      setJob({ status: 'error', error: (err as Error).message })
     }
-  }
-
-  const handlePick = (url: string) => {
-    setJob({ status: 'done', resultUrl: url })
   }
 
   const handleReset = () => {
     setClickPoint(null)
     setJob({ status: 'idle' })
-    setVariations([null, null, null])
   }
 
   const isProcessing = job.status === 'processing'
-  const isSelecting = job.status === 'selecting'
   const isDone = job.status === 'done'
   const isError = job.status === 'error'
   const resultUrl = isDone ? job.resultUrl : null
@@ -156,7 +116,7 @@ export default function PlaceFurniturePage() {
               <Download size={12} /> İndir
             </a>
           )}
-          {(isDone || isError || isSelecting) && (
+          {(isDone || isError) && (
             <button
               onClick={handleReset}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors hover:bg-gray-100"
@@ -174,7 +134,7 @@ export default function PlaceFurniturePage() {
             {isProcessing ? (
               <>
                 <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                {job.done}/3
+                Oluşturuluyor
               </>
             ) : (
               <><Sparkles size={14} /> Oluştur</>
@@ -192,12 +152,7 @@ export default function PlaceFurniturePage() {
       {isProcessing && (
         <div className="px-4 py-2 text-xs flex items-center gap-2 flex-shrink-0" style={{ background: '#F5EFE6', color: 'var(--accent-dark)', borderBottom: '1px solid var(--border)' }}>
           <span className="w-2.5 h-2.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-          3 farklı seçenek hazırlanıyor — {job.done}/3 tamamlandı
-        </div>
-      )}
-      {isSelecting && (
-        <div className="px-4 py-2 text-xs flex items-center gap-2 flex-shrink-0" style={{ background: '#F5EFE6', color: 'var(--accent-dark)', borderBottom: '1px solid var(--border)' }}>
-          <CheckCircle2 size={12} /> Beğendiğiniz seçeneğe tıklayın
+          Mobilya yerleştiriliyor...
         </div>
       )}
 
@@ -209,31 +164,22 @@ export default function PlaceFurniturePage() {
         <StepDivider />
         <Step n={3} label="Konum" done={!!clickPoint} />
         <StepDivider />
-        <Step n={4} label="Seç" done={isDone} />
+        <Step n={4} label="Oluştur" done={isDone} />
       </div>
 
       {/* Main layout */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Canvas + variation overlay */}
+        {/* Canvas */}
         <div className="flex-1 p-4 overflow-hidden relative">
           <RoomCanvas
             mode="place"
             onImageLoad={handleImageLoad}
-            onPointSelect={isProcessing || isSelecting ? (_p: ClickPoint) => {} : setClickPoint}
+            onPointSelect={isProcessing ? (_p: ClickPoint) => {} : setClickPoint}
             imageUrl={imageDataUrl}
-            clickPoint={isProcessing || isSelecting ? null : clickPoint}
+            clickPoint={isProcessing ? null : clickPoint}
             resultUrl={resultUrl}
-            disabled={isProcessing || isSelecting}
+            disabled={isProcessing}
           />
-
-          {/* Variation cards — shown while processing and while selecting */}
-          {(isProcessing || isSelecting) && imageDataUrl && (
-            <div className="absolute inset-x-4 bottom-4 flex gap-3 z-10">
-              {variations.map((v, i) => (
-                <VariationCard key={i} index={i} url={v} onPick={handlePick} />
-              ))}
-            </div>
-          )}
         </div>
 
         {/* Sidebar */}
@@ -260,64 +206,6 @@ export default function PlaceFurniturePage() {
         </div>
       </div>
     </div>
-  )
-}
-
-function VariationCard({ index, url, onPick }: { index: number; url: string | null; onPick: (url: string) => void }) {
-  const [hovered, setHovered] = useState(false)
-
-  return (
-    <button
-      onClick={() => url && onPick(url)}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      disabled={!url}
-      className="flex-1 rounded-2xl overflow-hidden relative"
-      style={{
-        aspectRatio: '4/3',
-        opacity: url ? (hovered ? 1 : 0.78) : 0.45,
-        transform: hovered && url ? 'scale(1.03) translateY(-3px)' : 'scale(1)',
-        transition: 'opacity 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease',
-        border: hovered && url ? '2px solid rgba(255,255,255,0.95)' : '2px solid rgba(255,255,255,0.45)',
-        boxShadow: hovered && url ? '0 10px 28px rgba(0,0,0,0.4)' : '0 4px 14px rgba(0,0,0,0.25)',
-        cursor: url ? 'pointer' : 'default',
-        background: 'rgba(200,195,190,0.4)',
-      }}
-    >
-      {url ? (
-        <>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={url} alt={`Seçenek ${index + 1}`} className="w-full h-full object-cover" />
-          {/* bottom gradient + label on hover */}
-          <div
-            className="absolute inset-0 flex items-end justify-center pb-3"
-            style={{
-              background: hovered
-                ? 'linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 55%)'
-                : 'linear-gradient(to top, rgba(0,0,0,0.2) 0%, transparent 40%)',
-              transition: 'background 0.15s',
-            }}
-          >
-            {hovered && (
-              <span className="text-white text-xs font-semibold px-3 py-1 rounded-full" style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(6px)' }}>
-                Seçenek {index + 1} — Seç
-              </span>
-            )}
-          </div>
-          {/* number badge */}
-          {!hovered && (
-            <div className="absolute top-2 left-2 w-5 h-5 rounded-full flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}>
-              <span className="text-white text-xs font-bold">{index + 1}</span>
-            </div>
-          )}
-        </>
-      ) : (
-        <div className="w-full h-full flex flex-col items-center justify-center gap-2">
-          <span className="w-5 h-5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
-          <span className="text-xs font-medium" style={{ color: 'rgba(100,90,80,0.7)' }}>{index + 1}</span>
-        </div>
-      )}
-    </button>
   )
 }
 
