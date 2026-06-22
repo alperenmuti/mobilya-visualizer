@@ -253,9 +253,15 @@ export async function runFluxKontext(params: {
 }
 
 // ─── Paste real product at click, then AI-refine — for PLACE (exact spot) ───
+// NOTE: compositing is done CLIENT-SIDE (canvas) because sharp's native binary
+// fails to load on this Vercel runtime. The server only does fal calls here.
 
-/** Proxy a catalog image to fal, remove its background, return the cutout PNG bytes. */
-async function cutoutProduct(catalogUrl: string): Promise<Buffer> {
+/**
+ * Proxies a catalog image to fal, removes its background, and returns the
+ * cut-out PNG as a data URL (transparent background). No sharp.
+ */
+export async function cutoutProductDataUrl(catalogUrl: string): Promise<string> {
+  configure()
   const falUrl = catalogUrl.startsWith('data:')
     ? await uploadDataUrl(catalogUrl)
     : await uploadRemoteImage(catalogUrl)
@@ -265,78 +271,18 @@ async function cutoutProduct(catalogUrl: string): Promise<Buffer> {
   })
   const outUrl = (result.data as { image?: { url: string } }).image?.url
   if (!outUrl) throw new Error('arka plan silinemedi')
-  const res = await fetch(outUrl)
-  return Buffer.from(await res.arrayBuffer())
+  return resultToDataUrl(outUrl)
 }
 
 /**
- * Pastes the cut-out furniture onto the room at the click point (its floor
- * contact = the click), scaled by furniture type and depth, then returns a
- * JPEG data URL. The paste is what guarantees the EXACT requested position.
+ * Refines a client-composited image (room with the product already pasted at
+ * the right spot) into a photorealistic result via FLUX Kontext, without
+ * moving or resizing the furniture.
  */
-async function compositeOnRoom(
-  roomDataUrl: string, cutoutPng: Buffer, x: number, y: number, furnitureName: string,
-): Promise<string> {
-  const { default: sharp } = await import('sharp')
-  const room = Buffer.from(roomDataUrl.split(',')[1], 'base64')
-  const meta = await sharp(room).metadata()
-  const W = meta.width!, H = meta.height!
-
-  // Trim the transparent border so size/position track the real product, not padding.
-  let cut = cutoutPng
-  try { cut = await sharp(cutoutPng).trim().png().toBuffer() } catch {}
-
-  const profile = detectFurniture(furnitureName)
-  const depthFactor = y < 0.40 ? 0.72 : y > 0.65 ? 1.15 : 0.92
-  let targetW = Math.max(20, Math.round(W * profile.wFrac * depthFactor))
-
-  let resized = await sharp(cut).resize({ width: targetW }).png().toBuffer()
-  let cm = await sharp(resized).metadata()
-  let cw = cm.width!, ch = cm.height!
-
-  // Must fit inside the room and above the click line (furniture rises from the floor).
-  const maxH = Math.max(40, Math.round(y * H))
-  if (ch > maxH || cw > W) {
-    const scale = Math.min(W / cw, maxH / ch)
-    targetW = Math.max(20, Math.floor(cw * scale))
-    resized = await sharp(cut).resize({ width: targetW }).png().toBuffer()
-    cm = await sharp(resized).metadata(); cw = cm.width!; ch = cm.height!
-  }
-
-  let left = Math.round(x * W - cw / 2)
-  let top  = Math.round(y * H - ch)      // bottom edge sits on the click point
-  left = Math.max(0, Math.min(left, W - cw))
-  top  = Math.max(0, Math.min(top,  H - ch))
-
-  const out = await sharp(room)
-    .composite([{ input: resized, left, top }])
-    .jpeg({ quality: 92 })
-    .toBuffer()
-  return `data:image/jpeg;base64,${out.toString('base64')}`
-}
-
-/**
- * PLACE pipeline that honours the exact click AND uses the real product:
- * cut out the catalog product → paste it at the click (correct position/scale)
- * → FLUX Kontext refines it into the scene (shadow, light, edges) WITHOUT moving it.
- */
-export async function pasteFurnitureAndRefine(params: {
-  roomDataUrl: string
-  furnitureImageUrl: string
-  furnitureName: string
-  x: number
-  y: number
-}): Promise<string> {
+export async function refinePastedScene(compositeDataUrl: string, furnitureName: string): Promise<string> {
   configure()
-
-  const cutout = await cutoutProduct(params.furnitureImageUrl)
-  const composite = await compositeOnRoom(
-    params.roomDataUrl, cutout, params.x, params.y, params.furnitureName,
-  )
-
-  const prompt = `A "${params.furnitureName}" has been pasted into this room photo. Make it look like a genuine photograph of that furniture standing in the room: add a soft, natural contact shadow on the floor beneath it, relight its surfaces to match the room's light direction and white balance, and blend any hard cut-out edges. CRITICAL — keep the furniture in EXACTLY the same position, size and orientation; do not move it, rescale it, duplicate it, or replace it with different furniture. Do not change anything else in the room. Output only the edited photo.`
-
-  return runFluxKontext({ imageDataUrl: composite, prompt })
+  const prompt = `A "${furnitureName}" has been pasted into this room photo. Make it look like a genuine photograph of that furniture standing in the room: add a soft, natural contact shadow on the floor beneath it, relight its surfaces to match the room's light direction and white balance, and blend any hard cut-out edges. CRITICAL — keep the furniture in EXACTLY the same position, size and orientation; do not move it, rescale it, duplicate it, or replace it with different furniture. Do not change anything else in the room. Output only the edited photo.`
+  return runFluxKontext({ imageDataUrl: compositeDataUrl, prompt })
 }
 
 // ─── FLUX Kontext multi-image — for PLACE (insert a real product) ───────────

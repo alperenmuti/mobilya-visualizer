@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { ArrowLeft, Sparkles, Download, RotateCcw, AlertCircle } from 'lucide-react'
 import RoomCanvas from '@/components/RoomCanvas'
 import FurnitureList from '@/components/FurnitureList'
+import { compositeFurnitureOnImage } from '@/lib/utils'
 import type { FurnitureItem, ClickPoint } from '@/lib/types'
 
 type Job =
@@ -48,20 +49,37 @@ export default function PlaceFurniturePage() {
     setJob({ status: 'processing' })
 
     try {
-      const res = await fetch('/api/ai/place', {
+      // Step 1 — server cuts the product out of its catalog photo (bg removed).
+      const cutRes = await fetch('/api/ai/place', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          imageDataUrl,
-          clickX: clickPoint.x,
-          clickY: clickPoint.y,
+          step: 'cutout',
           furnitureName: selectedFurniture.name,
           furnitureImageUrl: selectedFurniture.image_url,
         }),
       })
-      const data = await res.json()
-      if (!res.ok || !data.resultUrl) throw new Error(data.error ?? 'AI görüntü oluşturamadı. Tekrar deneyin.')
-      setJob({ status: 'done', resultUrl: data.resultUrl })
+      const cut = await cutRes.json()
+      if (!cutRes.ok || !cut.cutoutUrl) throw new Error(cut.error ?? 'Mobilya görseli hazırlanamadı.')
+
+      // Step 2 — composite the cut-out onto the room exactly where the user clicked.
+      const composite = await compositeFurnitureOnImage(
+        imageDataUrl, cut.cutoutUrl, clickPoint.x, clickPoint.y, cut.widthFraction ?? 0.3,
+      )
+
+      // Step 3 — server refines the paste into a photorealistic result via FLUX.
+      const refRes = await fetch('/api/ai/place', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          step: 'refine',
+          imageDataUrl: composite,
+          furnitureName: selectedFurniture.name,
+        }),
+      })
+      const ref = await refRes.json()
+      if (!refRes.ok || !ref.resultUrl) throw new Error(ref.error ?? 'AI görüntü oluşturamadı. Tekrar deneyin.')
+      setJob({ status: 'done', resultUrl: ref.resultUrl })
     } catch (err) {
       setJob({ status: 'error', error: (err as Error).message })
     }
