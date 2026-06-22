@@ -12,10 +12,12 @@ interface Props {
   clickPoint?: ClickPoint | null
   resultUrl?: string | null
   disabled?: boolean
+  /** When false, clicking does not select a point (no crosshair / hint). Default true. */
+  selectable?: boolean
 }
 
 export default function RoomCanvas({
-  mode, onImageLoad, onPointSelect, imageUrl, clickPoint, resultUrl, disabled
+  mode, onImageLoad, onPointSelect, imageUrl, clickPoint, resultUrl, disabled, selectable = true
 }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const imgRef = useRef<HTMLImageElement>(null)
@@ -36,14 +38,14 @@ export default function RoomCanvas({
   }, [handleFile])
 
   const handleClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (!imageUrl || disabled) return
+    if (!imageUrl || disabled || !selectable) return
     const rect = e.currentTarget.getBoundingClientRect()
     const x = (e.clientX - rect.left) / rect.width
     const y = (e.clientY - rect.top) / rect.height
     const pixelX = Math.round(x * (imgRef.current?.naturalWidth ?? rect.width))
     const pixelY = Math.round(y * (imgRef.current?.naturalHeight ?? rect.height))
     onPointSelect({ x, y, pixelX, pixelY })
-  }, [imageUrl, disabled, onPointSelect])
+  }, [imageUrl, disabled, selectable, onPointSelect])
 
   const displayUrl = resultUrl || imageUrl
 
@@ -59,7 +61,7 @@ export default function RoomCanvas({
         style={{
           background: imageUrl ? '#000' : 'var(--muted)',
           borderColor: dragOver ? 'var(--accent)' : 'var(--border)',
-          cursor: imageUrl && !disabled ? (mode === 'place' ? 'crosshair' : 'pointer') : 'default',
+          cursor: imageUrl && !disabled && selectable ? (mode === 'place' ? 'crosshair' : 'pointer') : 'default',
           minHeight: 320,
         }}
         onDrop={handleDrop}
@@ -138,7 +140,7 @@ export default function RoomCanvas({
             )}
 
             {/* Hint overlay when no point selected */}
-            {imageUrl && !clickPoint && !resultUrl && !disabled && (
+            {selectable && imageUrl && !clickPoint && !resultUrl && !disabled && (
               <div
                 className="absolute bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full text-xs font-medium text-white"
                 style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)', whiteSpace: 'nowrap' }}

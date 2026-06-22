@@ -1,10 +1,10 @@
 import { NextRequest } from 'next/server'
 import type { Part } from '@google/generative-ai'
-import { getGeminiModel, dataUrlToInlineData, describePlacement, extractImageFromResponse, drawMarker } from '@/lib/gemini'
+import { getGeminiModel, dataUrlToInlineData, extractImageFromResponse } from '@/lib/gemini'
 
 export async function POST(req: NextRequest) {
   try {
-    const { imageDataUrl, furnitureName, furnitureImageUrl, clickX, clickY, markerDrawn: clientMarked } = await req.json()
+    const { imageDataUrl, furnitureName, furnitureImageUrl, placementHint } = await req.json()
 
     if (!imageDataUrl || !furnitureName) {
       return Response.json({ error: 'Eksik parametreler' }, { status: 400 })
@@ -14,36 +14,17 @@ export async function POST(req: NextRequest) {
       return Response.json({ resultUrl: imageDataUrl, demo: true })
     }
 
-    const cx = clickX ?? 0.5
-    const cy = clickY ?? 0.7
-    const pctX = Math.round(cx * 100)
-    const pctY = Math.round(cy * 100)
-    const placement = describePlacement(cx, cy, furnitureName)
+    const hint = typeof placementHint === 'string' && placementHint.trim()
+      ? placementHint.trim()
+      : 'in the most natural, well-composed spot in the room'
 
-    // The marker may already be baked in by the browser (preferred, no Sharp needed).
-    // If not, draw it server-side via Sharp; if that fails too, fall back to
-    // coordinate-only wording so we never reference a marker that isn't in the image.
-    let sourceImage = imageDataUrl
-    let markerDrawn = clientMarked === true
-    if (!markerDrawn) {
-      const drawn = await drawMarker(imageDataUrl, cx, cy)
-      sourceImage = drawn.dataUrl
-      markerDrawn = drawn.ok
-    }
-    const { mimeType, data } = dataUrlToInlineData(sourceImage)
+    const { mimeType, data } = dataUrlToInlineData(imageDataUrl)
 
-    const placementHeader = markerDrawn
-      ? `There is a bright orange circle with crosshairs on the floor of the image — that is the exact spot the user chose.
-Place the "${furnitureName}" with its base center directly on that orange marker. The marker must be completely hidden under the furniture in the output. Do not move the furniture anywhere else.`
-      : `The user selected floor position (${pctX}% from left, ${pctY}% from top).
-Place the furniture's base center exactly at that pixel. Do not move it to a position you prefer.`
+    const prompt = `Edit this photo of an empty room by adding a "${furnitureName}". Return ONLY the edited image — do not reply with any text.
 
-    const prompt = `Edit this room photo by adding a "${furnitureName}". Return ONLY the edited image — do not reply with any text.
+Place the "${furnitureName}" ${hint}. Choose a position that looks natural and realistic for this type of furniture in this room.
 
-${placementHeader}
-${placement}
-
-Render it photorealistically: correct perspective and scale for that floor position (${pctY < 40 ? 'farther from camera, render smaller' : pctY > 65 ? 'close to camera, render larger' : 'mid-depth, standard scale'}), all feet flat on the floor — never floating — with a soft contact shadow and lighting that matches the room. Keep everything else exactly as it is: do not change the walls, floor, ceiling, windows or doors${markerDrawn ? ', hide the orange marker under the furniture,' : ''} and do not add any other objects.`
+Make it photorealistic: follow the room's floor perspective so the furniture sits at the correct scale and depth, with all feet flat on the floor (never floating) and a soft contact shadow underneath. Match the room's existing lighting, color temperature and camera angle. Keep everything else exactly as it is — do not change the walls, floor, ceiling, windows or doors, and do not add any other objects.`
 
     const model = getGeminiModel()
     const parts: Part[] = [
