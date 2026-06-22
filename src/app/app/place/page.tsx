@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { ArrowLeft, Sparkles, Download, RotateCcw, AlertCircle, CheckCircle2 } from 'lucide-react'
 import RoomCanvas from '@/components/RoomCanvas'
 import FurnitureList from '@/components/FurnitureList'
+import { drawMarkerOnImage } from '@/lib/utils'
 import type { FurnitureItem, ClickPoint } from '@/lib/types'
 
 type Job =
@@ -63,14 +64,27 @@ export default function PlaceFurniturePage() {
     let doneCount = 0
 
     await Promise.all(
-      OFFSETS.map(({ dx, dy }, i) =>
-        fetch('/api/ai/place', {
+      OFFSETS.map(async ({ dx, dy }, i) => {
+        const cx = Math.max(0.05, Math.min(0.95, clickPoint.x + dx))
+        const cy = Math.max(0.05, Math.min(0.95, clickPoint.y + dy))
+
+        // Draw the anchor marker in the browser (no server Sharp dependency).
+        // If it fails for any reason, send the plain image and let the server fall back.
+        let markedImage = imageDataUrl
+        let markerDrawn = false
+        try {
+          markedImage = await drawMarkerOnImage(imageDataUrl, cx, cy)
+          markerDrawn = true
+        } catch {}
+
+        return fetch('/api/ai/place', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            imageDataUrl,
-            clickX: Math.max(0.05, Math.min(0.95, clickPoint.x + dx)),
-            clickY: Math.max(0.05, Math.min(0.95, clickPoint.y + dy)),
+            imageDataUrl: markedImage,
+            markerDrawn,
+            clickX: cx,
+            clickY: cy,
             furnitureName: selectedFurniture.name,
             furnitureImageUrl: selectedFurniture.image_url,
           }),
@@ -87,7 +101,7 @@ export default function PlaceFurniturePage() {
             doneCount++
             setJob({ status: 'processing', done: doneCount })
           })
-      )
+      })
     )
 
     const ok = results.filter(Boolean)

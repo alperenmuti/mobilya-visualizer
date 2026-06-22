@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { ArrowLeft, Sparkles, Download, RotateCcw, AlertCircle } from 'lucide-react'
 import RoomCanvas from '@/components/RoomCanvas'
 import FurnitureList from '@/components/FurnitureList'
+import { drawMarkerOnImage } from '@/lib/utils'
 import type { FurnitureItem, ClickPoint, AIJobStatus } from '@/lib/types'
 
 export default function ReplaceFurniturePage() {
@@ -67,12 +68,21 @@ export default function ReplaceFurniturePage() {
     if (!imageDataUrl || !clickPoint || !selectedFurniture) return
     setJob({ status: 'processing', message: 'AI mobilyayı değiştiriyor...' })
 
+    // Draw the anchor marker in the browser (no server Sharp dependency).
+    let markedImage = imageDataUrl
+    let markerDrawn = false
+    try {
+      markedImage = await drawMarkerOnImage(imageDataUrl, clickPoint.x, clickPoint.y)
+      markerDrawn = true
+    } catch {}
+
     try {
       const res = await fetch('/api/ai/replace', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          imageDataUrl,
+          imageDataUrl: markedImage,
+          markerDrawn,
           maskDataUrl,
           clickX: clickPoint.x,
           clickY: clickPoint.y,

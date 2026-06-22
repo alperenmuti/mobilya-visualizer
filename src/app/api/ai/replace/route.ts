@@ -6,7 +6,7 @@ export async function POST(req: NextRequest) {
   try {
     const {
       imageDataUrl, furnitureName, furnitureImageUrl,
-      clickX, clickY,
+      clickX, clickY, markerDrawn: clientMarked,
     } = await req.json()
 
     if (!imageDataUrl || !furnitureName) {
@@ -23,10 +23,16 @@ export async function POST(req: NextRequest) {
     const pctY = Math.round(cy * 100)
     const placement = describePlacement(cx, cy, furnitureName)
 
-    // Draw a visible orange marker so Gemini can see which furniture to target.
-    // If Sharp can't render it (ok === false), fall back to coordinate-only wording
-    // so we never tell Gemini to look for a marker that isn't in the image.
-    const { dataUrl: sourceImage, ok: markerDrawn } = await drawMarker(imageDataUrl, cx, cy)
+    // The marker may already be baked in by the browser (preferred, no Sharp needed).
+    // If not, draw it server-side via Sharp; if that fails too, fall back to
+    // coordinate-only wording so we never reference a marker that isn't in the image.
+    let sourceImage = imageDataUrl
+    let markerDrawn = clientMarked === true
+    if (!markerDrawn) {
+      const drawn = await drawMarker(imageDataUrl, cx, cy)
+      sourceImage = drawn.dataUrl
+      markerDrawn = drawn.ok
+    }
     const { mimeType, data } = dataUrlToInlineData(sourceImage)
 
     const target = markerDrawn
