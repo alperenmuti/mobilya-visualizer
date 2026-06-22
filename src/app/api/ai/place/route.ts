@@ -26,8 +26,14 @@ export async function POST(req: NextRequest) {
         const resultUrl = await runFluxKontextMulti({ roomDataUrl: imageDataUrl, furnitureImageUrl, prompt })
         return Response.json({ resultUrl, engine: 'flux' })
       } catch (e) {
-        console.error('FLUX place error, falling back:', (e as Error).message)
-        // fall through to Gemini / demo
+        const msg = (e as Error).message
+        console.error('FLUX place error:', msg)
+        // No Gemini fallback configured → surface the real reason instead of
+        // silently returning the unchanged room (which looks like "nothing happened").
+        if (!process.env.GEMINI_KEY) {
+          return Response.json({ error: `FLUX hatası: ${msg}` }, { status: 500 })
+        }
+        // otherwise fall through to Gemini
       }
     }
 

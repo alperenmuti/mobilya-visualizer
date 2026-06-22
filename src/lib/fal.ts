@@ -112,6 +112,27 @@ async function uploadDataUrl(dataUrl: string): Promise<string> {
   return fal.storage.upload(new Blob([bytes], { type: 'image/jpeg' }))
 }
 
+/**
+ * Fetches a remote image on OUR server and re-uploads it to fal storage.
+ * Retail CDNs (e.g. İstikbal) block fal's datacenter IPs, so passing their
+ * URL straight to fal yields a file_download_error. We proxy it instead, with
+ * browser-like headers, and hand fal a fal.media URL it can always read.
+ */
+async function uploadRemoteImage(url: string): Promise<string> {
+  const res = await fetch(url, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36',
+      'Accept': 'image/avif,image/webp,image/jpeg,image/png,*/*',
+      'Referer': new URL(url).origin,
+    },
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`mobilya görseli indirilemedi: HTTP ${res.status}`)
+  const buf = Buffer.from(await res.arrayBuffer())
+  const ct = res.headers.get('content-type') ?? 'image/jpeg'
+  return fal.storage.upload(new Blob([buf], { type: ct }))
+}
+
 async function resultToDataUrl(url: string): Promise<string> {
   const res  = await fetch(url)
   const buf  = await res.arrayBuffer()
@@ -245,12 +266,12 @@ export async function runFluxKontextMulti(params: {
 }): Promise<string> {
   configure()
 
-  // Room is a data URL (uploaded photo) → push to fal storage.
-  // Furniture is usually a public catalog URL → pass through; upload if it's a data URL.
+  // Both images go to fal storage. The furniture is a retail-catalog URL that
+  // fal's own fetcher often can't reach, so we always proxy it through our server.
   const roomUrl = await uploadDataUrl(params.roomDataUrl)
   const furnitureUrl = params.furnitureImageUrl.startsWith('data:')
     ? await uploadDataUrl(params.furnitureImageUrl)
-    : params.furnitureImageUrl
+    : await uploadRemoteImage(params.furnitureImageUrl)
 
   const result = await fal.subscribe('fal-ai/flux-pro/kontext/max/multi', {
     input: {
