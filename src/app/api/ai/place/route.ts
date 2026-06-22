@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import type { Part } from '@google/generative-ai'
 import { runFluxKontextMulti } from '@/lib/fal'
+import { engineerPlacement } from '@/lib/placement'
 import { getGeminiModel, dataUrlToInlineData, extractImageFromResponse } from '@/lib/gemini'
 
 // FLUX Kontext / Gemini image calls can take 15-40s — give the function room.
@@ -8,7 +9,7 @@ export const maxDuration = 60
 
 export async function POST(req: NextRequest) {
   try {
-    const { imageDataUrl, furnitureName, furnitureImageUrl, diag } = await req.json()
+    const { imageDataUrl, furnitureName, furnitureImageUrl, clickX, clickY, markerDrawn, diag } = await req.json()
 
     // Safe diagnostic: reports only whether keys are configured (never values).
     if (diag) {
@@ -19,12 +20,16 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: 'Eksik parametreler' }, { status: 400 })
     }
 
+    // Click -> position brief (left/right/depth/facing) for the prompt.
+    const hasClick = typeof clickX === 'number' && typeof clickY === 'number'
+    const placementHint = hasClick ? engineerPlacement(clickX, clickY).description : null
+
     // ── PRIMARY: Gemini — edits the photo in place, keeping the room's exact
     //    resolution, framing and detail (FLUX re-renders the whole image at low
     //    res and drifts; user prefers Gemini). ──────────────────────────────
     if (process.env.GEMINI_KEY) {
       try {
-        const resultUrl = await geminiPlace(imageDataUrl, furnitureName, furnitureImageUrl)
+        const resultUrl = await geminiPlace(imageDataUrl, furnitureName, furnitureImageUrl, placementHint, markerDrawn === true)
         return Response.json({ resultUrl, engine: 'gemini' })
       } catch (e) {
         console.error('Gemini place error:', (e as Error).message)
@@ -59,15 +64,26 @@ export async function POST(req: NextRequest) {
 }
 
 /** Adds the furniture to the room with Gemini, editing the photo in place. */
-async function geminiPlace(imageDataUrl: string, furnitureName: string, furnitureImageUrl?: string): Promise<string> {
+async function geminiPlace(
+  imageDataUrl: string,
+  furnitureName: string,
+  furnitureImageUrl?: string,
+  placementHint?: string | null,
+  markerDrawn?: boolean,
+): Promise<string> {
   const { mimeType, data } = dataUrlToInlineData(imageDataUrl)
+
+  const positionLine = placementHint
+    ? `WHERE TO PLACE IT — follow this exactly:${markerDrawn ? ` There is a small orange dot drawn on the floor marking the exact target spot; put the furniture's base on that dot and hide the dot completely under the furniture.` : ''} ${placementHint}`
+    : `Place the "${furnitureName}" standing on the floor in a natural empty spot.`
 
   const prompt = `Add a single "${furnitureName}" into this photo of a room. Return ONLY the edited image — no text.
 
 THIS IS A LOCAL PHOTO EDIT, NOT A RE-RENDER. The output must be the SAME photograph with one piece of furniture added.
 - Keep the camera 100% unchanged: same camera angle, viewpoint, position, zoom, focal length, framing, crop, perspective and aspect ratio. Do NOT rotate, pan, zoom or re-frame the shot.
-- Keep the room 100% unchanged: every wall, the floor, windows, doors, archways, mouldings, colours, lighting and resolution stay exactly as in the original. Do NOT repaint, restyle, relight or regenerate any existing pixel.
-- The ONLY allowed change is adding the "${furnitureName}", standing on the floor in a natural empty spot.
+- Keep the room and EVERYTHING already in it 100% unchanged: every wall, the floor, windows, doors, mouldings, colours, lighting, and any furniture or objects already present stay exactly as they are. Do NOT move, remove, repaint, restyle or regenerate any existing pixel.
+- The ONLY allowed change is adding the one new "${furnitureName}".
+- ${positionLine}
 - Render the furniture realistically: align it to the room's EXISTING perspective and vanishing lines, at correct real-world scale, all feet flat on the floor (never floating), with a soft contact shadow and lighting/white-balance matching the room.
 - Add nothing else — no extra furniture, decor, plants, people or text.`
 
