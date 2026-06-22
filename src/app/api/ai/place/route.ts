@@ -62,9 +62,14 @@ export async function POST(req: NextRequest) {
 async function geminiPlace(imageDataUrl: string, furnitureName: string, furnitureImageUrl?: string): Promise<string> {
   const { mimeType, data } = dataUrlToInlineData(imageDataUrl)
 
-  const prompt = `Edit THIS exact photo of a room by adding a "${furnitureName}" to it. Return ONLY the edited image — no text.
+  const prompt = `Add a single "${furnitureName}" into this photo of a room. Return ONLY the edited image — no text.
 
-Keep the room itself exactly as it is — same walls, floor, windows, doors, lighting, framing and resolution. Do not change or re-render anything except adding the furniture. Place the "${furnitureName}" standing on the floor in a natural, sensible empty spot. Make it photorealistic: correct perspective and real-world scale for the room, all feet flat on the floor (never floating), with a soft contact shadow and lighting that matches the room.`
+THIS IS A LOCAL PHOTO EDIT, NOT A RE-RENDER. The output must be the SAME photograph with one piece of furniture added.
+- Keep the camera 100% unchanged: same camera angle, viewpoint, position, zoom, focal length, framing, crop, perspective and aspect ratio. Do NOT rotate, pan, zoom or re-frame the shot.
+- Keep the room 100% unchanged: every wall, the floor, windows, doors, archways, mouldings, colours, lighting and resolution stay exactly as in the original. Do NOT repaint, restyle, relight or regenerate any existing pixel.
+- The ONLY allowed change is adding the "${furnitureName}", standing on the floor in a natural empty spot.
+- Render the furniture realistically: align it to the room's EXISTING perspective and vanishing lines, at correct real-world scale, all feet flat on the floor (never floating), with a soft contact shadow and lighting/white-balance matching the room.
+- Add nothing else — no extra furniture, decor, plants, people or text.`
 
   const parts: Part[] = [
     { inlineData: { mimeType, data } },
