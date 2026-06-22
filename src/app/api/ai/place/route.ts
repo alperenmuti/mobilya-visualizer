@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import type { Part } from '@google/generative-ai'
-import { runFluxKontextMulti, cutoutProductDataUrl, refinePastedScene, detectFurniture } from '@/lib/fal'
+import { runFluxKontextMulti } from '@/lib/fal'
 import { engineerPlacement } from '@/lib/placement'
 import { getGeminiModel, dataUrlToInlineData, extractImageFromResponse } from '@/lib/gemini'
 
@@ -9,53 +9,31 @@ export const maxDuration = 60
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
-    const { imageDataUrl, furnitureName, furnitureImageUrl, clickX, clickY, step } = body
-
-    // ── Paste-and-refine, step 1: background-removed product cut-out ────────
-    // (compositing happens in the browser; this step is fal-only, no sharp)
-    if (step === 'cutout') {
-      if (!furnitureImageUrl) return Response.json({ error: 'Mobilya görseli yok' }, { status: 400 })
-      if (!process.env.FAL_KEY) return Response.json({ error: 'FAL_KEY tanımlı değil' }, { status: 500 })
-      try {
-        const cutoutUrl = await cutoutProductDataUrl(furnitureImageUrl)
-        const widthFraction = detectFurniture(furnitureName ?? '').wFrac
-        return Response.json({ cutoutUrl, widthFraction })
-      } catch (e) {
-        return Response.json({ error: `Arka plan silinemedi: ${(e as Error).message}` }, { status: 500 })
-      }
-    }
-
-    // ── Paste-and-refine, step 2: refine the client-composited image ───────
-    if (step === 'refine') {
-      if (!imageDataUrl) return Response.json({ error: 'Görsel yok' }, { status: 400 })
-      if (!process.env.FAL_KEY) return Response.json({ error: 'FAL_KEY tanımlı değil' }, { status: 500 })
-      try {
-        const resultUrl = await refinePastedScene(imageDataUrl, furnitureName ?? 'furniture')
-        return Response.json({ resultUrl, engine: 'flux-paste' })
-      } catch (e) {
-        return Response.json({ error: `FLUX rötuş hatası: ${(e as Error).message}` }, { status: 500 })
-      }
-    }
+    const { imageDataUrl, furnitureName, furnitureImageUrl, clickX, clickY, markerDrawn } = await req.json()
 
     if (!imageDataUrl || !furnitureName) {
       return Response.json({ error: 'Eksik parametreler' }, { status: 400 })
     }
 
     const hasClick = typeof clickX === 'number' && typeof clickY === 'number'
-    // Prompt-engineer layer (used by the no-click / Gemini fallback path).
+    // Prompt-engineer layer: click -> rich perspective/depth/angle placement brief.
     const spec = hasClick ? engineerPlacement(clickX, clickY) : null
     const hint = spec
       ? spec.description
-      : 'in the most natural, well-composed spot in the room'
+      : 'in the most natural, well-composed spot in the room, at a realistic scale and perspective with all feet on the floor'
 
-    // ── Single-call fallback: whole-image FLUX (no exact click) ────────────
+    // ── Generative placement: FLUX Kontext renders the real product into the
+    //    room at correct perspective / depth / angle, guided to the click. ───
     if (process.env.FAL_KEY && furnitureImageUrl) {
       try {
+        const markerLine = markerDrawn
+          ? `A small orange dot is drawn on the floor of the first image — that dot marks where the furniture should stand. Put it there and hide the dot completely under the furniture.`
+          : ''
         const resultUrl = await runFluxKontextMulti({
           roomDataUrl: imageDataUrl,
           furnitureImageUrl,
-          prompt: `The first image is a room. The second image is a "${furnitureName}". Place that exact piece of furniture from the second image into the room, positioned ${hint}. Keep the room completely unchanged. Reproduce the furniture's real shape, colour and material; render it at realistic scale and perspective, feet on the floor, natural contact shadow. Output only the edited room photo — no other objects or text.`,
+          prompt: `The first image is a room. The second image is a "${furnitureName}". Realistically add that exact piece of furniture from the second image into the room. ${hint} ${markerLine}
+Analyse the room's perspective and lighting and render the furniture in correct 3-D perspective for that exact spot — it may be seen from a slight angle — reproducing its real shape, colour, upholstery and material from the second image. Keep the room itself completely unchanged (walls, floor, windows, doors, lighting, camera). Output only the edited room photo — no dot, no other objects, people or text.`,
         })
         return Response.json({ resultUrl, engine: 'flux' })
       } catch (e) {
