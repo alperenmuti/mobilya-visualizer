@@ -21,7 +21,9 @@ export async function POST(req: NextRequest) {
         const resultUrl = await runFluxKontextMulti({
           roomDataUrl: imageDataUrl,
           furnitureImageUrl,
-          prompt: `The first image is a room. The second image is a "${furnitureName}". Add that exact piece of furniture from the second image into the room, placed in a natural, sensible spot for this kind of furniture (against a wall or in an open area, not blocking doorways). Render it photorealistically: correct 3-D perspective and scale for the room, every foot flat on the floor with a natural contact shadow, lighting and white balance matching the room. Reproduce its real shape, colour, upholstery and material from the second image. Keep the room itself completely unchanged (walls, floor, windows, doors, lighting, camera). Output only the edited room photo — no other objects, people or text.`,
+          prompt: `Image 1 is a photo of a room. Image 2 is a "${furnitureName}".
+Your ONLY job is to ADD the furniture from image 2 into the room of image 1. Image 1 must stay EXACTLY the same — keep its exact walls, wall colours, floor, windows, doors, archways, mouldings, lighting and camera angle pixel-for-pixel. Do NOT regenerate, restyle, repaint, crop or replace the room. Do NOT invent a new room.
+Add the "${furnitureName}" standing on the floor in a natural, sensible empty spot (against a wall or in open floor area, not blocking a doorway). Render it photorealistically in correct perspective and real-world scale for the room, every foot flat on the floor, with a soft contact shadow and lighting matching the room. Reproduce its real shape, colour, upholstery and material from image 2. Output only the edited photo of THIS room with the furniture added — no text.`,
         })
         return Response.json({ resultUrl, engine: 'flux' })
       } catch (e) {
