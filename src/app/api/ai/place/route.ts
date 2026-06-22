@@ -1,6 +1,10 @@
 import { NextRequest } from 'next/server'
 import type { Part } from '@google/generative-ai'
+import { runFluxKontext } from '@/lib/fal'
 import { getGeminiModel, dataUrlToInlineData, extractImageFromResponse } from '@/lib/gemini'
+
+// FLUX Kontext / Gemini image calls can take 15-40s — give the function room.
+export const maxDuration = 60
 
 export async function POST(req: NextRequest) {
   try {
@@ -10,13 +14,26 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: 'Eksik parametreler' }, { status: 400 })
     }
 
-    if (!process.env.GEMINI_KEY) {
-      return Response.json({ resultUrl: imageDataUrl, demo: true })
-    }
-
     const hint = typeof placementHint === 'string' && placementHint.trim()
       ? placementHint.trim()
       : 'in the most natural, well-composed spot in the room'
+
+    // ── Primary: FLUX.1 Kontext (instruction-based image editing) ──────────
+    if (process.env.FAL_KEY) {
+      try {
+        const prompt = `Add a photorealistic ${furnitureName} to this empty room, placed ${hint}. Keep the room itself completely unchanged — same walls, floor, ceiling, windows, doors, lighting and camera angle. The ${furnitureName} must rest naturally on the floor at correct real-world scale and perspective, with realistic contact shadows that match the room's light. Do not add any other objects, people or text.`
+        const resultUrl = await runFluxKontext({ imageDataUrl, prompt })
+        return Response.json({ resultUrl, engine: 'flux' })
+      } catch (e) {
+        console.error('FLUX place error, falling back:', (e as Error).message)
+        // fall through to Gemini / demo
+      }
+    }
+
+    // ── Fallback: Gemini ───────────────────────────────────────────────────
+    if (!process.env.GEMINI_KEY) {
+      return Response.json({ resultUrl: imageDataUrl, demo: true })
+    }
 
     const { mimeType, data } = dataUrlToInlineData(imageDataUrl)
 
@@ -46,7 +63,6 @@ Make it photorealistic: follow the room's floor perspective so the furniture sit
     }
 
     // Retry up to 3 times — Gemini sometimes returns text-only on the first attempt.
-    // Capture the real reason (API error vs text response) so failures aren't opaque.
     let imageUrl: string | null = null
     let lastDetail = 'bilinmeyen'
     for (let attempt = 0; attempt < 3; attempt++) {
@@ -63,10 +79,10 @@ Make it photorealistic: follow the room's floor perspective so the furniture sit
     }
 
     if (!imageUrl) {
-      throw new Error(`Gemini görüntü üretemedi (${lastDetail})`)
+      throw new Error(`Görüntü üretilemedi (${lastDetail})`)
     }
 
-    return Response.json({ resultUrl: imageUrl })
+    return Response.json({ resultUrl: imageUrl, engine: 'gemini' })
   } catch (err) {
     console.error('AI place error:', err)
     return Response.json({ error: (err as Error).message }, { status: 500 })
