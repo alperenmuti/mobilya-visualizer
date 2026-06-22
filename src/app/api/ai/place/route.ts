@@ -38,40 +38,12 @@ Place the "${furnitureName}" with its base center directly on that orange marker
       : `The user selected floor position (${pctX}% from left, ${pctY}% from top).
 Place the furniture's base center exactly at that pixel. Do not move it to a position you prefer.`
 
-    const prompt = `Task: add a "${furnitureName}" to this room photo. Output a photorealistic composite image — no text, no labels.
+    const prompt = `Edit this room photo by adding a "${furnitureName}". Return ONLY the edited image — do not reply with any text.
 
-PLACEMENT — HIGHEST PRIORITY:
 ${placementHeader}
-
 ${placement}
 
-Scene analysis (do before placing):
-- Trace the floor perspective vanishing lines.
-- Find floor-wall junctions for each wall.
-- Note shadow direction, light source angle.
-- Scale reference: door ~200cm tall, ceiling ~250cm.
-- Floor material and texture.
-
-Perspective & scale:
-- Align furniture to the room vanishing points; base edges parallel to floor lines.
-- Vertical edges truly vertical.
-- Sizes: sofa ~85cm tall / 200cm wide; armchair ~80cm / 80cm; wardrobe ~200cm / 90cm; dining table ~75cm tall.
-- Depth scale: ${pctY < 40 ? 'far from camera — render smaller' : pctY > 65 ? 'close to camera — render larger' : 'mid-depth — standard scale'}.
-
-Lighting:
-- Match existing light source direction. Add contact shadow beneath furniture.
-- Do not change room brightness, color temperature, or ambient light.
-
-Style:
-- Real photo: photorealistic rendering. 3D render: match its render style.
-- Match sharpness, grain, depth-of-field, and color profile.
-
-Rules:
-- Keep the furniture base center at the chosen spot — no repositioning${markerDrawn ? ' (and hide the orange marker under the furniture)' : ''}
-- All feet/base must touch the floor — no floating
-- Do not alter walls, floor, ceiling, windows, doors, or any existing objects
-- Do not add accessories, pillows, or plants
-- Do not write any text or labels in the output image`
+Render it photorealistically: correct perspective and scale for that floor position (${pctY < 40 ? 'farther from camera, render smaller' : pctY > 65 ? 'close to camera, render larger' : 'mid-depth, standard scale'}), all feet flat on the floor — never floating — with a soft contact shadow and lighting that matches the room. Keep everything else exactly as it is: do not change the walls, floor, ceiling, windows or doors${markerDrawn ? ', hide the orange marker under the furniture,' : ''} and do not add any other objects.`
 
     const model = getGeminiModel()
     const parts: Part[] = [
@@ -87,22 +59,30 @@ Rules:
         const imgMime = imgRes.headers.get('content-type') ?? 'image/jpeg'
         parts.push({ inlineData: { mimeType: imgMime, data: imgBase64 } })
         parts.push({
-          text: `REFERENCE APPEARANCE: The image above shows what the "${furnitureName}" looks like. Replicate its exact shape, proportions, color, and material finish in the room composite. Adapt ONLY the lighting direction and shadow to match the room's light source — do not alter the furniture's intrinsic color or material.`,
+          text: `The image above is the "${furnitureName}" to add. Match its shape, color and material; adapt only its lighting and shadow to the room.`,
         })
       } catch {}
     }
 
-    // Retry up to 3 times — Gemini sometimes returns text-only on the first attempt
+    // Retry up to 3 times — Gemini sometimes returns text-only on the first attempt.
+    // Capture the real reason (API error vs text response) so failures aren't opaque.
     let imageUrl: string | null = null
+    let lastDetail = 'bilinmeyen'
     for (let attempt = 0; attempt < 3; attempt++) {
-      const result = await model.generateContent(parts)
-      const extracted = await extractImageFromResponse(result)
-      if (extracted.imageUrl) { imageUrl = extracted.imageUrl; break }
-      console.warn(`Gemini attempt ${attempt + 1} returned no image: ${extracted.textFallback ?? 'no text'}`)
+      try {
+        const result = await model.generateContent(parts)
+        const extracted = await extractImageFromResponse(result)
+        if (extracted.imageUrl) { imageUrl = extracted.imageUrl; break }
+        lastDetail = extracted.textFallback ? `model metin döndürdü: "${extracted.textFallback}"` : 'görüntü yok, metin yok'
+        console.warn(`Gemini place attempt ${attempt + 1}: ${lastDetail}`)
+      } catch (e) {
+        lastDetail = (e as Error).message
+        console.warn(`Gemini place attempt ${attempt + 1} threw: ${lastDetail}`)
+      }
     }
 
     if (!imageUrl) {
-      throw new Error('Gemini görüntü üretemedi. Lütfen tekrar deneyin.')
+      throw new Error(`Gemini görüntü üretemedi (${lastDetail})`)
     }
 
     return Response.json({ resultUrl: imageUrl })

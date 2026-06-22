@@ -62,6 +62,7 @@ export default function PlaceFurniturePage() {
     setJob({ status: 'processing', done: 0 })
 
     let doneCount = 0
+    let lastError = ''
 
     await Promise.all(
       OFFSETS.map(async ({ dx, dy }, i) => {
@@ -94,9 +95,11 @@ export default function PlaceFurniturePage() {
             if (data.resultUrl) {
               results[i] = data.resultUrl
               setVariations([...results])
+            } else if (data.error) {
+              lastError = data.error
             }
           })
-          .catch(() => {})
+          .catch(err => { lastError = err?.message ?? 'ağ hatası' })
           .finally(() => {
             doneCount++
             setJob({ status: 'processing', done: doneCount })
@@ -106,7 +109,7 @@ export default function PlaceFurniturePage() {
 
     const ok = results.filter(Boolean)
     if (ok.length === 0) {
-      setJob({ status: 'error', error: 'AI görüntü oluşturamadı. Tekrar deneyin.' })
+      setJob({ status: 'error', error: lastError || 'AI görüntü oluşturamadı. Tekrar deneyin.' })
     } else {
       setJob({ status: 'selecting' })
     }
