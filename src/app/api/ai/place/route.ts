@@ -8,7 +8,12 @@ export const maxDuration = 60
 
 export async function POST(req: NextRequest) {
   try {
-    const { imageDataUrl, furnitureName, furnitureImageUrl } = await req.json()
+    const { imageDataUrl, furnitureName, furnitureImageUrl, diag } = await req.json()
+
+    // Safe diagnostic: reports only whether keys are configured (never values).
+    if (diag) {
+      return Response.json({ gemini: !!process.env.GEMINI_KEY, fal: !!process.env.FAL_KEY })
+    }
 
     if (!imageDataUrl || !furnitureName) {
       return Response.json({ error: 'Eksik parametreler' }, { status: 400 })
