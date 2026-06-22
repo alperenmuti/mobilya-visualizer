@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import type { Part } from '@google/generative-ai'
-import { getGeminiModel, dataUrlToInlineData, describePlacement, extractImageFromResponse } from '@/lib/gemini'
+import { getGeminiModel, dataUrlToInlineData, describePlacement, extractImageFromResponse, drawMarker } from '@/lib/gemini'
 
 export async function POST(req: NextRequest) {
   try {
@@ -17,29 +17,33 @@ export async function POST(req: NextRequest) {
       return Response.json({ resultUrl: imageDataUrl, demo: true })
     }
 
-    const pctX = Math.round((clickX ?? 0.5) * 100)
-    const pctY = Math.round((clickY ?? 0.5) * 100)
-    const placement = describePlacement(clickX ?? 0.5, clickY ?? 0.5, furnitureName)
-    const { mimeType, data } = dataUrlToInlineData(imageDataUrl)
+    const cx = clickX ?? 0.5
+    const cy = clickY ?? 0.5
+    const pctX = Math.round(cx * 100)
+    const pctY = Math.round(cy * 100)
+    const placement = describePlacement(cx, cy, furnitureName)
+
+    // Draw a visible orange marker so Gemini can see which furniture to target
+    const markedImageDataUrl = await drawMarker(imageDataUrl, cx, cy)
+    const { mimeType, data } = dataUrlToInlineData(markedImageDataUrl)
 
     const prompt = `Task: in this room photo, replace one piece of furniture with a "${furnitureName}". Output a photorealistic image — no text, no labels.
 
-TARGET: The user clicked at (${pctX}% from left, ${pctY}% from top). The furniture AT or nearest to that pixel is the only item to replace.
+━━━ STEP 1 — FIND THE ORANGE MARKER ━━━
+Look at the room image. There is a bright orange circle with crosshairs drawn on or near a piece of furniture.
+The furniture that the orange marker is ON or NEAREST TO is the ONLY item you will replace.
+Identify it now (sofa, chair, wardrobe, table, etc.) before proceeding.
 
-━━━ STEP 1 — ANALYZE THE SCENE ━━━
+━━━ STEP 2 — ANALYZE THE SCENE ━━━
 Before touching anything, mentally record:
 A) The floor surface — its perspective lines, material, and texture.
 B) The camera eye level — where is the horizon in this photo?
-C) WALL POSITIONS: Find the left wall, right wall, and back wall surfaces. Find the exact floor-wall junction lines. Note which wall the existing furniture is against.
+C) WALL POSITIONS: Find the left wall, right wall, and back wall surfaces. Find the exact floor-wall junction lines. Note which wall the marked furniture is against.
 D) The shadow direction and angle — which way do all shadows fall?
 E) The scale reference — door height (~200cm), ceiling height (~250cm).
 
-━━━ STEP 2 — IDENTIFY THE TARGET ━━━
-The user clicked at (${pctX}%, ${pctY}%) in the image.
-Look at EXACTLY that pixel coordinate. Identify the furniture object that is at or nearest to that position. This is the ONLY item you will change. Name it mentally (sofa, chair, table, cabinet, etc.).
-
 ━━━ STEP 3 — REMOVE THE TARGET CLEANLY ━━━
-Erase the identified furniture completely.
+Erase the orange marker AND the identified furniture completely.
 Fill its former space with the background that logically belongs there:
 • Floor area below it → reconstruct the floor texture matching the surrounding floor exactly (same color, same perspective, same material grain/pattern).
 • Wall area behind it → reconstruct the wall seamlessly.
@@ -56,7 +60,8 @@ FOOTPRINT MATCHING: The new "${furnitureName}" occupies the SAME floor footprint
 FAILURE CONDITIONS — any of these = WRONG output:
 ✗ New furniture feet/base do not touch the floor (floating)
 ✗ New furniture back has a visible gap between it and the wall
-✗ New furniture appears in a different wall/position than the original
+✗ New furniture appears in a different wall/position than the marked item
+✗ Orange marker is still visible anywhere in the output
 
 ━━━ STEP 5 — PERSPECTIVE & SCALE ━━━
 • Align the replacement to the same vanishing point(s) as the removed furniture.

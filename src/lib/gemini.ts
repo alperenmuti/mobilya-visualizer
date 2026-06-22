@@ -80,6 +80,45 @@ FACING: ${facing}
 DEPTH/SCALE: ${depth}`
 }
 
+/**
+ * Draws a bright orange crosshair+circle marker at the click position.
+ * Makes the anchor visible to Gemini so it can see exactly where to act.
+ * Falls back silently to the original image if Sharp fails.
+ */
+export async function drawMarker(imageDataUrl: string, cx: number, cy: number): Promise<string> {
+  try {
+    const { default: sharp } = await import('sharp')
+    const [, base64] = imageDataUrl.split(',')
+    const buffer = Buffer.from(base64, 'base64')
+    const meta = await sharp(buffer).metadata()
+    const w = meta.width!
+    const h = meta.height!
+    const mx = Math.round(cx * w)
+    const my = Math.round(cy * h)
+    const r   = Math.max(18, Math.round(Math.min(w, h) * 0.026))
+    const arm = Math.round(r * 1.9)
+
+    const svg = `<svg width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg">
+      <line x1="${mx - arm}" y1="${my}" x2="${mx + arm}" y2="${my}" stroke="black" stroke-width="5" stroke-linecap="round"/>
+      <line x1="${mx}" y1="${my - arm}" x2="${mx}" y2="${my + arm}" stroke="black" stroke-width="5" stroke-linecap="round"/>
+      <line x1="${mx - arm}" y1="${my}" x2="${mx + arm}" y2="${my}" stroke="#FF6B00" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="${mx}" y1="${my - arm}" x2="${mx}" y2="${my + arm}" stroke="#FF6B00" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="${mx}" cy="${my}" r="${r + 3}" fill="rgba(0,0,0,0.6)"/>
+      <circle cx="${mx}" cy="${my}" r="${r}" fill="rgba(255,107,0,0.88)"/>
+      <circle cx="${mx}" cy="${my}" r="${Math.max(5, Math.round(r * 0.28))}" fill="white"/>
+    </svg>`
+
+    const out = await sharp(buffer)
+      .composite([{ input: Buffer.from(svg), blend: 'over' }])
+      .jpeg({ quality: 92 })
+      .toBuffer()
+
+    return `data:image/jpeg;base64,${out.toString('base64')}`
+  } catch {
+    return imageDataUrl
+  }
+}
+
 export async function extractImageFromResponse(
   result: Awaited<ReturnType<ReturnType<typeof getGeminiModel>['generateContent']>>
 ): Promise<{ imageUrl: string | null; textFallback: string | null }> {
