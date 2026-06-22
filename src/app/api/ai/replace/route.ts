@@ -23,24 +23,30 @@ export async function POST(req: NextRequest) {
     const pctY = Math.round(cy * 100)
     const placement = describePlacement(cx, cy, furnitureName)
 
-    // Draw a visible orange marker so Gemini can see which furniture to target
-    const markedImageDataUrl = await drawMarker(imageDataUrl, cx, cy)
-    const { mimeType, data } = dataUrlToInlineData(markedImageDataUrl)
+    // Draw a visible orange marker so Gemini can see which furniture to target.
+    // If Sharp can't render it (ok === false), fall back to coordinate-only wording
+    // so we never tell Gemini to look for a marker that isn't in the image.
+    const { dataUrl: sourceImage, ok: markerDrawn } = await drawMarker(imageDataUrl, cx, cy)
+    const { mimeType, data } = dataUrlToInlineData(sourceImage)
+
+    const target = markerDrawn
+      ? `TARGET: There is a bright orange crosshair marker visible in the image. The furniture AT or nearest to that orange marker is the only item to replace. Remove both the marker and that furniture, then place the "${furnitureName}" in the same position.`
+      : `TARGET: The user clicked at (${pctX}% from left, ${pctY}% from top). The furniture AT or nearest to that pixel is the only item to replace.`
 
     const prompt = `Task: in this room photo, replace one piece of furniture with a "${furnitureName}". Output a photorealistic image — no text, no labels.
 
-TARGET: There is a bright orange crosshair marker visible in the image. The furniture AT or nearest to that orange marker is the only item to replace. Remove both the marker and that furniture, then place the "${furnitureName}" in the same position.
+${target}
 
 ━━━ STEP 1 — ANALYZE THE SCENE ━━━
 Before touching anything, mentally record:
 A) The floor surface — its perspective lines, material, and texture.
 B) The camera eye level — where is the horizon in this photo?
-C) WALL POSITIONS: Find the left wall, right wall, and back wall surfaces. Find the exact floor-wall junction lines. Note which wall the marked furniture is against.
+C) WALL POSITIONS: Find the left wall, right wall, and back wall surfaces. Find the exact floor-wall junction lines. Note which wall the target furniture is against.
 D) The shadow direction and angle — which way do all shadows fall?
 E) The scale reference — door height (~200cm), ceiling height (~250cm).
 
 ━━━ STEP 2 — REMOVE THE TARGET CLEANLY ━━━
-Erase the orange marker AND the identified furniture completely.
+Erase ${markerDrawn ? 'the orange marker AND ' : ''}the identified furniture completely.
 Fill its former space with the background that logically belongs there:
 • Floor area below it → reconstruct the floor texture matching the surrounding floor exactly (same color, same perspective, same material grain/pattern).
 • Wall area behind it → reconstruct the wall seamlessly.
@@ -57,8 +63,7 @@ FOOTPRINT MATCHING: The new "${furnitureName}" occupies the SAME floor footprint
 FAILURE CONDITIONS — any of these = WRONG output:
 ✗ New furniture feet/base do not touch the floor (floating)
 ✗ New furniture back has a visible gap between it and the wall
-✗ New furniture appears in a different wall/position than the marked item
-✗ Orange marker is still visible anywhere in the output
+✗ New furniture appears in a different wall/position than the target item${markerDrawn ? '\n✗ Orange marker is still visible anywhere in the output' : ''}
 
 ━━━ STEP 4 — PERSPECTIVE & SCALE ━━━
 • Align the replacement to the same vanishing point(s) as the removed furniture.

@@ -83,9 +83,17 @@ DEPTH/SCALE: ${depth}`
 /**
  * Draws a bright orange crosshair+circle marker at the click position.
  * Makes the anchor visible to Gemini so it can see exactly where to act.
- * Falls back silently to the original image if Sharp fails.
+ *
+ * Returns { dataUrl, ok }. `ok` is false when Sharp can't rasterize the SVG
+ * (e.g. a serverless runtime whose libvips lacks SVG support) — callers MUST
+ * check it and avoid referencing a marker that was never drawn, otherwise
+ * Gemini hunts for a nonexistent marker and replies with text instead of an image.
  */
-export async function drawMarker(imageDataUrl: string, cx: number, cy: number): Promise<string> {
+export async function drawMarker(
+  imageDataUrl: string,
+  cx: number,
+  cy: number,
+): Promise<{ dataUrl: string; ok: boolean }> {
   try {
     const { default: sharp } = await import('sharp')
     const [, base64] = imageDataUrl.split(',')
@@ -113,9 +121,10 @@ export async function drawMarker(imageDataUrl: string, cx: number, cy: number): 
       .jpeg({ quality: 92 })
       .toBuffer()
 
-    return `data:image/jpeg;base64,${out.toString('base64')}`
-  } catch {
-    return imageDataUrl
+    return { dataUrl: `data:image/jpeg;base64,${out.toString('base64')}`, ok: true }
+  } catch (e) {
+    console.warn('drawMarker failed, falling back to unmarked image:', (e as Error).message)
+    return { dataUrl: imageDataUrl, ok: false }
   }
 }
 

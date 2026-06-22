@@ -20,15 +20,22 @@ export async function POST(req: NextRequest) {
     const pctY = Math.round(cy * 100)
     const placement = describePlacement(cx, cy, furnitureName)
 
-    // Draw a visible orange marker so Gemini can see the exact target position
-    const markedImageDataUrl = await drawMarker(imageDataUrl, cx, cy)
-    const { mimeType, data } = dataUrlToInlineData(markedImageDataUrl)
+    // Draw a visible orange marker so Gemini can see the exact target position.
+    // If Sharp can't render it (ok === false), fall back to coordinate-only wording
+    // so we never tell Gemini to look for a marker that isn't in the image.
+    const { dataUrl: sourceImage, ok: markerDrawn } = await drawMarker(imageDataUrl, cx, cy)
+    const { mimeType, data } = dataUrlToInlineData(sourceImage)
+
+    const placementHeader = markerDrawn
+      ? `There is a bright orange circle with crosshairs on the floor of the image — that is the exact spot the user chose.
+Place the "${furnitureName}" with its base center directly on that orange marker. The marker must be completely hidden under the furniture in the output. Do not move the furniture anywhere else.`
+      : `The user selected floor position (${pctX}% from left, ${pctY}% from top).
+Place the furniture's base center exactly at that pixel. Do not move it to a position you prefer.`
 
     const prompt = `Task: add a "${furnitureName}" to this room photo. Output a photorealistic composite image — no text, no labels.
 
 PLACEMENT — HIGHEST PRIORITY:
-There is a bright orange circle with crosshairs on the floor of the image — that is the exact spot the user chose.
-Place the "${furnitureName}" with its base center directly on that orange marker. The marker must be completely hidden under the furniture in the output. Do not move the furniture anywhere else.
+${placementHeader}
 
 ${placement}
 
@@ -54,7 +61,7 @@ Style:
 - Match sharpness, grain, depth-of-field, and color profile.
 
 Rules:
-- Orange marker must be hidden under the furniture — no repositioning
+- Keep the furniture base center at the chosen spot — no repositioning${markerDrawn ? ' (and hide the orange marker under the furniture)' : ''}
 - All feet/base must touch the floor — no floating
 - Do not alter walls, floor, ceiling, windows, doors, or any existing objects
 - Do not add accessories, pillows, or plants
