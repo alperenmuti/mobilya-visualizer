@@ -47,8 +47,8 @@ export function drawMarkerOnImage(imageDataUrl: string, nx: number, ny: number):
 
       const mx = Math.round(nx * w)
       const my = Math.round(ny * h)
-      const r = Math.max(18, Math.round(Math.min(w, h) * 0.026))
-      const arm = Math.round(r * 1.9)
+      const r = Math.max(24, Math.round(Math.min(w, h) * 0.034))
+      const arm = Math.round(r * 2.1)
 
       // Crosshair — black halo then orange
       ctx.lineCap = 'round'

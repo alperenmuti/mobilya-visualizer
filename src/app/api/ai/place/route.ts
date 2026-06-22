@@ -27,13 +27,15 @@ export async function POST(req: NextRequest) {
     if (process.env.FAL_KEY && furnitureImageUrl) {
       try {
         const markerLine = markerDrawn
-          ? `A small orange dot is drawn on the floor of the first image — that dot marks where the furniture should stand. Put it there and hide the dot completely under the furniture.`
+          ? `There is a bright orange dot drawn on the floor of the first image. That dot marks the EXACT spot where the furniture's base must stand — place it directly on the dot and hide the dot completely under the furniture. The dot location is non-negotiable.`
           : ''
         const resultUrl = await runFluxKontextMulti({
           roomDataUrl: imageDataUrl,
           furnitureImageUrl,
-          prompt: `The first image is a room. The second image is a "${furnitureName}". Realistically add that exact piece of furniture from the second image into the room. ${hint} ${markerLine}
-Analyse the room's perspective and lighting and render the furniture in correct 3-D perspective for that exact spot — it may be seen from a slight angle — reproducing its real shape, colour, upholstery and material from the second image. Keep the room itself completely unchanged (walls, floor, windows, doors, lighting, camera). Output only the edited room photo — no dot, no other objects, people or text.`,
+          prompt: `The first image is a room. The second image is a "${furnitureName}".
+${markerLine}
+${hint}
+Add that exact piece of furniture from the second image into the room AT THE SPECIFIED SPOT ONLY. Render it in correct 3-D perspective and angle for that spot — it may be seen from a slight angle — with every foot flat on the floor (no floating), realistic scale for its depth, a natural contact shadow, and lighting matching the room. Reproduce its real shape, colour, upholstery and material from the second image. Keep the room itself completely unchanged (walls, floor, windows, doors, lighting, camera). Output only the edited room photo — no dot, no other objects, people or text.`,
         })
         return Response.json({ resultUrl, engine: 'flux' })
       } catch (e) {

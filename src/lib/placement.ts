@@ -33,9 +33,12 @@ export function engineerPlacement(x: number, y: number): PlacementSpec {
     x < 0.80 ? 'Rotate it slightly so it is seen three-quarters, angled toward the room centre (from the right side).' :
                'Its back is against the right wall and it is rotated to face toward the left / the room centre (three-quarters from the front-left).'
 
-  const description = `Place the furniture ${horizontal}, ${depth}. ${facing} ` +
-    `Read the room's floor lines and vanishing perspective and match them exactly: the furniture must sit flat on the floor with every leg/foot touching the ground (never floating), at a realistic real-world scale for that depth, with a soft contact shadow beneath it and lighting that matches the room. ` +
-    `The floor-contact point should be around ${pctX}% from the left and ${pctY}% from the top of the image.`
+  const description =
+    `MANDATORY POSITION — this overrides everything: the furniture MUST stand ${horizontal}, ${depth}. ` +
+    `Its floor-contact point is at ${pctX}% from the left and ${pctY}% from the top of the image. ` +
+    `Do NOT place it in the centre of the room, do NOT pick a "nicer" spot, do NOT move it — put it ONLY at that exact location. ` +
+    `${facing} ` +
+    `Match the room's floor lines and vanishing perspective exactly so it sits flat on the floor with every leg/foot on the ground (never floating), at realistic real-world scale for that depth, with a soft contact shadow and lighting that matches the room.`
 
   return { description }
 }
