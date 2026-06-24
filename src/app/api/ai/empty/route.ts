@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import type { Part } from '@google/generative-ai'
 import { getGeminiModel, dataUrlToInlineData, extractImageFromResponse } from '@/lib/gemini'
-import { roomTypeToEn } from '@/components/RoomTypeSelector'
+import { roomTypeToEn } from '@/lib/roomTypes'
 
 export async function POST(req: NextRequest) {
   try {

@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import type { Part } from '@google/generative-ai'
 import { getGeminiModel, dataUrlToInlineData, extractImageFromResponse } from '@/lib/gemini'
-import { roomTypeToEn } from '@/components/RoomTypeSelector'
+import { roomTypeToEn } from '@/lib/roomTypes'
 
 const STYLE_PROMPTS: Record<string, string> = {
   modern: 'modern contemporary style: low-profile furniture with clean geometric lines, neutral palette (white, light gray, beige, black accents), statement lighting, minimal clutter, large abstract art on walls',

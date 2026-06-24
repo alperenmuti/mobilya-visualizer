@@ -3,7 +3,7 @@ import type { Part } from '@google/generative-ai'
 import { runFluxKontextMulti } from '@/lib/fal'
 import { engineerPlacement } from '@/lib/placement'
 import { getGeminiModel, dataUrlToInlineData, extractImageFromResponse } from '@/lib/gemini'
-import { roomTypeToEn } from '@/components/RoomTypeSelector'
+import { roomTypeToEn } from '@/lib/roomTypes'
 
 // FLUX Kontext / Gemini image calls can take 15-40s — give the function room.
 export const maxDuration = 60
