@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, Sparkles, Download, RotateCcw, AlertCircle, Check } from 'lucide-react'
 import RoomCanvas from '@/components/RoomCanvas'
+import RoomTypeSelector from '@/components/RoomTypeSelector'
 import type { ClickPoint } from '@/lib/types'
 
 const STYLES = [
@@ -22,6 +23,7 @@ type Job =
 
 export default function DesignPage() {
   const [brand, setBrand] = useState<string | null>(null)
+  const [roomType, setRoomType] = useState<string>('')
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null)
   const [selectedStyle, setSelectedStyle] = useState<string>('modern')
   const [job, setJob] = useState<Job>({ status: 'idle' })
@@ -43,7 +45,7 @@ export default function DesignPage() {
       const res = await fetch('/api/ai/design', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageDataUrl, style: selectedStyle }),
+        body: JSON.stringify({ imageDataUrl, style: selectedStyle, roomType }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Bilinmeyen hata')
@@ -120,7 +122,9 @@ export default function DesignPage() {
         </div>
       )}
 
-      {/* Style selector */}
+      {/* Room type + style selectors */}
+      <RoomTypeSelector value={roomType} onChange={setRoomType} disabled={isProcessing} />
+
       <div className="flex-shrink-0 px-4 py-3" style={{ borderBottom: '1px solid var(--border)', background: 'var(--muted)' }}>
         <div className="grid grid-cols-6 gap-2">
           {STYLES.map(s => (

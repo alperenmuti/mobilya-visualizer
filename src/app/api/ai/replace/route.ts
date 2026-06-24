@@ -1,12 +1,13 @@
 import { NextRequest } from 'next/server'
 import type { Part } from '@google/generative-ai'
 import { getGeminiModel, dataUrlToInlineData, describePlacement, extractImageFromResponse, drawMarker } from '@/lib/gemini'
+import { roomTypeToEn } from '@/components/RoomTypeSelector'
 
 export async function POST(req: NextRequest) {
   try {
     const {
       imageDataUrl, furnitureName, furnitureImageUrl,
-      clickX, clickY, markerDrawn: clientMarked,
+      clickX, clickY, markerDrawn: clientMarked, roomType,
     } = await req.json()
 
     if (!imageDataUrl || !furnitureName) {
@@ -39,9 +40,12 @@ export async function POST(req: NextRequest) {
       ? `TARGET: There is a bright orange crosshair marker visible in the image. The furniture AT or nearest to that orange marker is the only item to replace. Remove both the marker and that furniture, then place the "${furnitureName}" in the same position.`
       : `TARGET: The user clicked at (${pctX}% from left, ${pctY}% from top). The furniture AT or nearest to that pixel is the only item to replace.`
 
+    const roomEn = roomTypeToEn(roomType ?? '')
+    const roomContext = roomEn ? `ROOM TYPE: This is a ${roomEn}.\n` : ''
+
     const prompt = `Edit this room photo by replacing one piece of furniture with a "${furnitureName}". Return ONLY the edited image — do not reply with any text.
 
-${target}
+${roomContext}${target}
 
 Remove ${markerDrawn ? 'the orange marker and ' : ''}that furniture and rebuild the floor and wall behind it seamlessly, as if it was never there. Put the "${furnitureName}" in the same spot: same footprint and scale, base flat on the floor, back against the wall if the original was against one. Match the room's existing lighting and add a contact shadow. Change nothing else in the room — only that one piece of furniture is replaced.`
 

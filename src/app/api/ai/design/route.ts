@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import type { Part } from '@google/generative-ai'
 import { getGeminiModel, dataUrlToInlineData, extractImageFromResponse } from '@/lib/gemini'
+import { roomTypeToEn } from '@/components/RoomTypeSelector'
 
 const STYLE_PROMPTS: Record<string, string> = {
   modern: 'modern contemporary style: low-profile furniture with clean geometric lines, neutral palette (white, light gray, beige, black accents), statement lighting, minimal clutter, large abstract art on walls',
@@ -13,7 +14,7 @@ const STYLE_PROMPTS: Record<string, string> = {
 
 export async function POST(req: NextRequest) {
   try {
-    const { imageDataUrl, style } = await req.json()
+    const { imageDataUrl, style, roomType } = await req.json()
 
     if (!imageDataUrl || !style) {
       return Response.json({ error: 'Eksik parametreler' }, { status: 400 })
@@ -24,10 +25,12 @@ export async function POST(req: NextRequest) {
     }
 
     const styleDescription = STYLE_PROMPTS[style] ?? STYLE_PROMPTS.modern
+    const roomEn = roomTypeToEn(roomType ?? '')
     const { mimeType, data } = dataUrlToInlineData(imageDataUrl)
 
-    const prompt = `Task: furnish this empty (or near-empty) room in a specific interior design style. Output a photorealistic furnished room — no text, no labels.
+    const prompt = `Task: furnish this empty (or near-empty) ${roomEn || 'room'} in a specific interior design style. Output a photorealistic furnished room — no text, no labels.
 
+ROOM TYPE: ${roomEn ? `This is a ${roomEn}. Furnish it with furniture and accessories appropriate for a ${roomEn} — not generic items.` : 'Determine the room type from the photo and furnish accordingly.'}
 DESIGN STYLE: ${styleDescription}
 
 Instructions:

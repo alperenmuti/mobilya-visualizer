@@ -4,11 +4,13 @@ import Link from 'next/link'
 import { ArrowLeft, Sparkles, Download, RotateCcw, AlertCircle } from 'lucide-react'
 import RoomCanvas from '@/components/RoomCanvas'
 import FurnitureList from '@/components/FurnitureList'
+import RoomTypeSelector from '@/components/RoomTypeSelector'
 import { drawMarkerOnImage } from '@/lib/utils'
 import type { FurnitureItem, ClickPoint, AIJobStatus } from '@/lib/types'
 
 export default function ReplaceFurniturePage() {
   const [brand, setBrand] = useState<string | null>(null)
+  const [roomType, setRoomType] = useState<string>('')
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null)
   const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 })
   const [clickPoint, setClickPoint] = useState<ClickPoint | null>(null)
@@ -90,6 +92,7 @@ export default function ReplaceFurniturePage() {
           furnitureImageUrl: selectedFurniture.image_url,
           imageWidth: imageDimensions.width,
           imageHeight: imageDimensions.height,
+          roomType,
         }),
       })
       const data = await res.json()
@@ -173,6 +176,8 @@ export default function ReplaceFurniturePage() {
           }
         </div>
       )}
+
+      <RoomTypeSelector value={roomType} onChange={setRoomType} disabled={isProcessing} />
 
       <div className="flex items-center gap-4 px-4 py-2 flex-shrink-0" style={{ borderBottom: '1px solid var(--border)', background: 'var(--muted)' }}>
         <Step n={1} label="Fotoğraf yükle" done={!!imageDataUrl} />

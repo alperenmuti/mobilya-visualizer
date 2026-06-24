@@ -3,13 +3,14 @@ import type { Part } from '@google/generative-ai'
 import { runFluxKontextMulti } from '@/lib/fal'
 import { engineerPlacement } from '@/lib/placement'
 import { getGeminiModel, dataUrlToInlineData, extractImageFromResponse } from '@/lib/gemini'
+import { roomTypeToEn } from '@/components/RoomTypeSelector'
 
 // FLUX Kontext / Gemini image calls can take 15-40s — give the function room.
 export const maxDuration = 60
 
 export async function POST(req: NextRequest) {
   try {
-    const { imageDataUrl, furnitureName, furnitureImageUrl, clickX, clickY, markerDrawn, diag } = await req.json()
+    const { imageDataUrl, furnitureName, furnitureImageUrl, clickX, clickY, markerDrawn, diag, roomType } = await req.json()
 
     // Safe diagnostic: reports only whether keys are configured (never values).
     if (diag) {
@@ -33,7 +34,7 @@ export async function POST(req: NextRequest) {
     //    res and drifts; user prefers Gemini). ──────────────────────────────
     if (process.env.GEMINI_KEY) {
       try {
-        const resultUrl = await geminiPlace(imageDataUrl, furnitureName, furnitureImageUrl, placementHint, markerDrawn === true)
+        const resultUrl = await geminiPlace(imageDataUrl, furnitureName, furnitureImageUrl, placementHint, markerDrawn === true, roomTypeToEn(roomType ?? ''))
         return Response.json({ resultUrl, engine: 'gemini' })
       } catch (e) {
         console.error('Gemini place error:', (e as Error).message)
@@ -74,6 +75,7 @@ async function geminiPlace(
   furnitureImageUrl?: string,
   placementHint?: string | null,
   markerDrawn?: boolean,
+  roomTypeEn?: string,
 ): Promise<string> {
   const { mimeType, data } = dataUrlToInlineData(imageDataUrl)
 
@@ -81,8 +83,12 @@ async function geminiPlace(
     ? `WHERE TO PLACE IT — follow this exactly:${markerDrawn ? ` There is a small orange dot drawn on the floor marking the exact target spot; put the furniture's base on that dot and hide the dot completely under the furniture.` : ''} ${placementHint}`
     : `Place the "${furnitureName}" standing on the floor in a natural empty spot.`
 
-  const prompt = `Add a single "${furnitureName}" into this photo of a room. Return ONLY the edited image — no text.
+  const roomContext = roomTypeEn
+    ? `ROOM CONTEXT: This is a ${roomTypeEn}. Place the furniture in a way that suits a ${roomTypeEn}.`
+    : ''
 
+  const prompt = `Add a single "${furnitureName}" into this photo of a room. Return ONLY the edited image — no text.
+${roomContext ? `\n${roomContext}` : ''}
 THIS IS A LOCAL PHOTO EDIT, NOT A RE-RENDER. The output must be the SAME photograph with one piece of furniture added.
 - Keep the camera 100% unchanged: same camera angle, viewpoint, position, zoom, focal length, framing, crop, perspective and aspect ratio. Do NOT rotate, pan, zoom or re-frame the shot.
 - Keep the room and EVERYTHING already in it 100% unchanged: every wall, the floor, windows, doors, mouldings, colours, lighting, and any furniture or objects already present stay exactly as they are. Do NOT move, remove, repaint, restyle or regenerate any existing pixel.

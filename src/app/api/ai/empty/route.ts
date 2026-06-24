@@ -1,10 +1,11 @@
 import { NextRequest } from 'next/server'
 import type { Part } from '@google/generative-ai'
 import { getGeminiModel, dataUrlToInlineData, extractImageFromResponse } from '@/lib/gemini'
+import { roomTypeToEn } from '@/components/RoomTypeSelector'
 
 export async function POST(req: NextRequest) {
   try {
-    const { imageDataUrl } = await req.json()
+    const { imageDataUrl, roomType } = await req.json()
 
     if (!imageDataUrl) {
       return Response.json({ error: 'Eksik parametreler' }, { status: 400 })
@@ -14,9 +15,10 @@ export async function POST(req: NextRequest) {
       return Response.json({ resultUrl: imageDataUrl, demo: true })
     }
 
+    const roomEn = roomTypeToEn(roomType ?? '')
     const { mimeType, data } = dataUrlToInlineData(imageDataUrl)
 
-    const prompt = `Task: remove everything movable from this room photo. Output a photorealistic empty room — no text, no labels.
+    const prompt = `Task: remove everything movable from this ${roomEn || 'room'} photo. Output a photorealistic empty room — no text, no labels.
 
 Remove ALL of the following:
 - Furniture (sofas, chairs, tables, beds, wardrobes, shelves, desks, stools, ottomans, etc.)

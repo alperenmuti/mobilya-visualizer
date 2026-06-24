@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { ArrowLeft, Plus, Download, Undo2, RotateCcw, AlertCircle } from 'lucide-react'
 import RoomCanvas from '@/components/RoomCanvas'
 import FurnitureList from '@/components/FurnitureList'
+import RoomTypeSelector from '@/components/RoomTypeSelector'
 import { drawMarkerOnImage } from '@/lib/utils'
 import type { FurnitureItem, ClickPoint } from '@/lib/types'
 
@@ -14,6 +15,7 @@ type Job =
 
 export default function PlaceFurniturePage() {
   const [brand, setBrand] = useState<string | null>(null)
+  const [roomType, setRoomType] = useState<string>('')
   // history[0] = original room; last entry = current image. Each add pushes a new entry.
   const [history, setHistory] = useState<string[]>([])
   const [clickPoint, setClickPoint] = useState<ClickPoint | null>(null)
@@ -71,6 +73,7 @@ export default function PlaceFurniturePage() {
           clickY: clickPoint.y,
           furnitureName: selectedFurniture.name,
           furnitureImageUrl: selectedFurniture.image_url,
+          roomType,
         }),
       })
       const data = await res.json()
@@ -175,6 +178,9 @@ export default function PlaceFurniturePage() {
         </div>
       )}
 
+      {/* Room type selector */}
+      <RoomTypeSelector value={roomType} onChange={setRoomType} disabled={isProcessing} />
+
       {/* Hint bar */}
       {current && !isProcessing && (
         <div className="px-4 py-2 text-xs flex items-center gap-3 flex-shrink-0" style={{ borderBottom: '1px solid var(--border)', background: 'var(--muted)', color: 'var(--muted-fg)' }}>
@@ -182,7 +188,7 @@ export default function PlaceFurniturePage() {
           <span>·</span>
           <span>{clickPoint ? '✓ Konum seçildi' : '2) Odada koymak istediğin yere tıkla'}</span>
           <span>·</span>
-          <span>3) “Ekle”ye bas</span>
+          <span>3) "Ekle"ye bas</span>
         </div>
       )}
 

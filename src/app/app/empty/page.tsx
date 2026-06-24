@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, Sparkles, Download, RotateCcw, AlertCircle } from 'lucide-react'
 import RoomCanvas from '@/components/RoomCanvas'
+import RoomTypeSelector from '@/components/RoomTypeSelector'
 import type { ClickPoint } from '@/lib/types'
 
 type Job =
@@ -13,6 +14,7 @@ type Job =
 
 export default function EmptyRoomPage() {
   const [brand, setBrand] = useState<string | null>(null)
+  const [roomType, setRoomType] = useState<string>('')
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null)
   const [job, setJob] = useState<Job>({ status: 'idle' })
 
@@ -33,7 +35,7 @@ export default function EmptyRoomPage() {
       const res = await fetch('/api/ai/empty', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageDataUrl }),
+        body: JSON.stringify({ imageDataUrl, roomType }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Bilinmeyen hata')
@@ -109,6 +111,8 @@ export default function EmptyRoomPage() {
           AI odadaki tüm eşyaları kaldırıyor...
         </div>
       )}
+
+      <RoomTypeSelector value={roomType} onChange={setRoomType} disabled={isProcessing} />
 
       <div className="flex items-center gap-4 px-4 py-2 flex-shrink-0" style={{ borderBottom: '1px solid var(--border)', background: 'var(--muted)' }}>
         <Step n={1} label="Fotoğraf" done={!!imageDataUrl} />
