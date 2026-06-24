@@ -17,7 +17,7 @@ export function dataUrlToInlineData(dataUrl: string): { mimeType: string; data: 
   return { mimeType, data }
 }
 
-/** Strips SKU codes and brand suffixes from furniture names, e.g. "Alia Koltuk 2C0ALIA001 | İstikbal" → "Alia Koltuk" */
+/** Strips SKU codes and brand suffixes, e.g. "Alia Koltuk 2C0ALIA001 | İstikbal" → "Alia Koltuk" */
 export function cleanFurnitureName(name: string): string {
   return (name ?? '')
     .split('|')[0]
@@ -27,86 +27,114 @@ export function cleanFurnitureName(name: string): string {
 }
 
 /**
- * Returns precise placement instructions for the Gemini prompt.
+ * Returns a short, direct placement description for the Gemini prompt.
  *
- * Wall zones (tight — only trigger when clearly near a wall):
- *   x < 0.28  → near left wall
- *   x > 0.72  → near right wall
- *   y < 0.40  → near back wall
- *   corner    → (left|right) AND y < 0.32
- *
- * Seating (koltuk, kanepe, berjer…) is ALWAYS placed against a wall.
- * For center-area clicks, the nearest wall is inferred from x position.
+ * Zones (tighter than before to avoid mis-classifying center clicks as wall zones):
+ *   x < 0.30  → near left wall
+ *   x > 0.70  → near right wall
+ *   y < 0.42  → near back wall
+ *   corner    → (left|right) AND y < 0.33
+ *   open floor → everything else
  */
 export function describePlacement(x: number, y: number, furnitureName: string): string {
-  const isSeating = /koltuk|kanepe|sandalye|berjer|sofa|chair|armchair|couch/i.test(furnitureName)
-
   const pctX = Math.round(x * 100)
   const pctY = Math.round(y * 100)
 
-  const nearLeft  = x < 0.28
-  const nearRight = x > 0.72
-  const nearBack  = y < 0.40
-  const cornerL   = nearLeft  && y < 0.32
-  const cornerR   = nearRight && y < 0.32
+  // Plain-language horizontal band — gives the model a verbal anchor alongside the marker.
+  const horizontal =
+    x < 0.20 ? 'at the far left edge of the room' :
+    x < 0.40 ? 'on the left side of the room, left of center' :
+    x < 0.60 ? 'horizontally centered in the room' :
+    x < 0.80 ? 'on the right side of the room, right of center' :
+               'at the far right edge of the room'
 
-  // Seating must always be against a wall — infer wall from x if in open area
-  let effectiveLeft  = nearLeft
-  let effectiveRight = nearRight
-  let effectiveBack  = nearBack
+  // Depth band from vertical position — lower in frame = closer to camera = larger.
+  const depth =
+    y < 0.40 ? 'deep in the background, far from the camera, so it must be rendered SMALL' :
+    y < 0.65 ? 'in the middle of the room at mid-distance, rendered at MEDIUM size' :
+               'in the foreground, close to the camera, so it must be rendered LARGE'
 
-  if (isSeating && !nearLeft && !nearRight && !nearBack) {
-    if (x < 0.42)      effectiveLeft  = true
-    else if (x > 0.58) effectiveRight = true
-    else                effectiveBack  = true
-  }
+  // Seating (koltuk, kanepe, berjer…) must always be against a wall.
+  const isSeating = /koltuk|kanepe|berjer|sofa|chair|armchair|couch/i.test(furnitureName)
 
-  let zone: string
+  // Wall contact when genuinely near a wall, or always for seating.
+  const nearLeft  = x < 0.22 || (isSeating && x < 0.42)
+  const nearRight = x > 0.78 || (isSeating && x > 0.58)
+  const nearBack  = y < 0.30 || (isSeating && y < 0.55 && !nearLeft && !nearRight)
   let wallRule: string
   let facing: string
-
-  if (cornerL) {
-    zone     = 'top-left corner where the left wall and back wall meet'
-    wallRule = 'Left side flush against left wall. Back flush against back wall. Zero gap on both.'
-    facing   = 'Faces diagonally toward the room center (right and toward camera).'
-  } else if (cornerR) {
-    zone     = 'top-right corner where the right wall and back wall meet'
-    wallRule = 'Right side flush against right wall. Back flush against back wall. Zero gap on both.'
-    facing   = 'Faces diagonally toward the room center (left and toward camera).'
-  } else if (effectiveLeft) {
-    zone     = 'against the left wall'
-    wallRule = 'Back of the furniture pressed flat against the left wall — continuous contact, zero gap, no shadow gap.'
+  if (nearBack && x < 0.35) {
+    wallRule = 'Tuck it into the back-left corner: left side flush to the left wall, back flush to the back wall.'
+    facing   = 'Faces diagonally toward the room center.'
+  } else if (nearBack && x > 0.65) {
+    wallRule = 'Tuck it into the back-right corner: right side flush to the right wall, back flush to the back wall.'
+    facing   = 'Faces diagonally toward the room center.'
+  } else if (nearLeft && !nearBack) {
+    wallRule = 'Back of the furniture is flush against the left wall, zero gap.'
     facing   = 'Faces right, toward the room interior.'
-  } else if (effectiveRight) {
-    zone     = 'against the right wall'
-    wallRule = 'Back of the furniture pressed flat against the right wall — continuous contact, zero gap.'
+  } else if (nearRight && !nearBack) {
+    wallRule = 'Back of the furniture is flush against the right wall, zero gap.'
     facing   = 'Faces left, toward the room interior.'
-  } else if (effectiveBack) {
-    zone     = 'against the back (far) wall'
-    wallRule = 'Back of the furniture pressed flat against the back wall — continuous contact, zero gap.'
+  } else if (nearBack) {
+    wallRule = 'Back of the furniture is flush against the back wall, zero gap.'
     facing   = 'Faces the camera.'
   } else {
-    zone     = 'open floor, away from walls'
-    wallRule = 'Freestanding — no wall contact needed. Leave natural spacing on all sides.'
+    wallRule = 'Freestanding on open floor — natural spacing, no wall contact needed.'
     facing   = 'Faces the camera.'
   }
 
-  // Perspective-aware scale instruction based on y depth
-  const perspectiveScale = y < 0.28
-    ? `PERSPECTIVE SCALE: Very far from camera (top of image). Furniture must appear roughly 35-50% the size it would at the foreground. Use door heights and floor tile proportions visible in the image to calibrate.`
-    : y < 0.42
-    ? `PERSPECTIVE SCALE: Far from camera. Furniture appears about 55-70% of foreground size. Scale down accordingly.`
-    : y < 0.58
-    ? `PERSPECTIVE SCALE: Mid-depth. Standard perspective scale.`
-    : y < 0.72
-    ? `PERSPECTIVE SCALE: Moderately close to camera. Furniture appears about 115-130% of mid-depth size.`
-    : `PERSPECTIVE SCALE: Very close to camera (bottom of image). Furniture appears large — roughly 140-160% of standard. May be partially cropped at bottom edge.`
+  return `EXACT POSITION (highest priority): put the "${furnitureName}" ${horizontal}, ${depth}. Its floor contact point sits exactly on the orange marker at ${pctX}% from the left and ${pctY}% from the top. Do NOT center it or move it elsewhere — honor this spot precisely.
+${wallRule}
+${facing}
+Follow the room's floor perspective so the furniture sits naturally at that depth, with all feet on the ground.`
+}
 
-  return `ZONE: ${zone}.
-ANCHOR — LOCKED: The center of the furniture's floor footprint is at pixel (${pctX}% from left, ${pctY}% from top). Do NOT drift from this point.
-WALL RULE: ${wallRule}
-FACING: ${facing}
-${perspectiveScale}`
+/**
+ * Draws a bright orange crosshair+circle marker at the click position.
+ * Makes the anchor visible to Gemini so it can see exactly where to act.
+ *
+ * Returns { dataUrl, ok }. `ok` is false when Sharp can't rasterize the SVG
+ * (e.g. a serverless runtime whose libvips lacks SVG support) — callers MUST
+ * check it and avoid referencing a marker that was never drawn, otherwise
+ * Gemini hunts for a nonexistent marker and replies with text instead of an image.
+ */
+export async function drawMarker(
+  imageDataUrl: string,
+  cx: number,
+  cy: number,
+): Promise<{ dataUrl: string; ok: boolean }> {
+  try {
+    const { default: sharp } = await import('sharp')
+    const [, base64] = imageDataUrl.split(',')
+    const buffer = Buffer.from(base64, 'base64')
+    const meta = await sharp(buffer).metadata()
+    const w = meta.width!
+    const h = meta.height!
+    const mx = Math.round(cx * w)
+    const my = Math.round(cy * h)
+    const r   = Math.max(18, Math.round(Math.min(w, h) * 0.026))
+    const arm = Math.round(r * 1.9)
+
+    const svg = `<svg width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg">
+      <line x1="${mx - arm}" y1="${my}" x2="${mx + arm}" y2="${my}" stroke="black" stroke-width="5" stroke-linecap="round"/>
+      <line x1="${mx}" y1="${my - arm}" x2="${mx}" y2="${my + arm}" stroke="black" stroke-width="5" stroke-linecap="round"/>
+      <line x1="${mx - arm}" y1="${my}" x2="${mx + arm}" y2="${my}" stroke="#FF6B00" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="${mx}" y1="${my - arm}" x2="${mx}" y2="${my + arm}" stroke="#FF6B00" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="${mx}" cy="${my}" r="${r + 3}" fill="rgba(0,0,0,0.6)"/>
+      <circle cx="${mx}" cy="${my}" r="${r}" fill="rgba(255,107,0,0.88)"/>
+      <circle cx="${mx}" cy="${my}" r="${Math.max(5, Math.round(r * 0.28))}" fill="white"/>
+    </svg>`
+
+    const out = await sharp(buffer)
+      .composite([{ input: Buffer.from(svg), blend: 'over' }])
+      .jpeg({ quality: 92 })
+      .toBuffer()
+
+    return { dataUrl: `data:image/jpeg;base64,${out.toString('base64')}`, ok: true }
+  } catch (e) {
+    console.warn('drawMarker failed, falling back to unmarked image:', (e as Error).message)
+    return { dataUrl: imageDataUrl, ok: false }
+  }
 }
 
 export async function extractImageFromResponse(

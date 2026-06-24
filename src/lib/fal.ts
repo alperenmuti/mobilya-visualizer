@@ -112,6 +112,27 @@ async function uploadDataUrl(dataUrl: string): Promise<string> {
   return fal.storage.upload(new Blob([bytes], { type: 'image/jpeg' }))
 }
 
+/**
+ * Fetches a remote image on OUR server and re-uploads it to fal storage.
+ * Retail CDNs (e.g. İstikbal) block fal's datacenter IPs, so passing their
+ * URL straight to fal yields a file_download_error. We proxy it instead, with
+ * browser-like headers, and hand fal a fal.media URL it can always read.
+ */
+async function uploadRemoteImage(url: string): Promise<string> {
+  const res = await fetch(url, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36',
+      'Accept': 'image/avif,image/webp,image/jpeg,image/png,*/*',
+      'Referer': new URL(url).origin,
+    },
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`mobilya görseli indirilemedi: HTTP ${res.status}`)
+  const buf = Buffer.from(await res.arrayBuffer())
+  const ct = res.headers.get('content-type') ?? 'image/jpeg'
+  return fal.storage.upload(new Blob([buf], { type: ct }))
+}
+
 async function resultToDataUrl(url: string): Promise<string> {
   const res  = await fetch(url)
   const buf  = await res.arrayBuffer()
@@ -223,6 +244,74 @@ export async function runFluxKontext(params: {
       guidance_scale:   5,
       safety_tolerance: '3',
       output_format:    'jpeg',
+    },
+  })
+
+  const outputUrl = (result.data as FluxImageOutput).images?.[0]?.url
+  if (!outputUrl) throw new Error('fal.ai görüntü üretemedi')
+  return resultToDataUrl(outputUrl)
+}
+
+// ─── Paste real product at click, then AI-refine — for PLACE (exact spot) ───
+// NOTE: compositing is done CLIENT-SIDE (canvas) because sharp's native binary
+// fails to load on this Vercel runtime. The server only does fal calls here.
+
+/**
+ * Proxies a catalog image to fal, removes its background, and returns the
+ * cut-out PNG as a data URL (transparent background). No sharp.
+ */
+export async function cutoutProductDataUrl(catalogUrl: string): Promise<string> {
+  configure()
+  const falUrl = catalogUrl.startsWith('data:')
+    ? await uploadDataUrl(catalogUrl)
+    : await uploadRemoteImage(catalogUrl)
+
+  const result = await fal.subscribe('fal-ai/imageutils/rembg', {
+    input: { image_url: falUrl },
+  })
+  const outUrl = (result.data as { image?: { url: string } }).image?.url
+  if (!outUrl) throw new Error('arka plan silinemedi')
+  return resultToDataUrl(outUrl)
+}
+
+/**
+ * Refines a client-composited image (room with the product already pasted at
+ * the right spot) into a photorealistic result via FLUX Kontext, without
+ * moving or resizing the furniture.
+ */
+export async function refinePastedScene(compositeDataUrl: string, furnitureName: string): Promise<string> {
+  configure()
+  const prompt = `A "${furnitureName}" has been pasted into this room photo. Make it look like a genuine photograph of that furniture standing in the room: add a soft, natural contact shadow on the floor beneath it, relight its surfaces to match the room's light direction and white balance, and blend any hard cut-out edges. CRITICAL — keep the furniture in EXACTLY the same position, size and orientation; do not move it, rescale it, duplicate it, or replace it with different furniture. Do not change anything else in the room. Output only the edited photo.`
+  return runFluxKontext({ imageDataUrl: compositeDataUrl, prompt })
+}
+
+// ─── FLUX Kontext multi-image — for PLACE (insert a real product) ───────────
+
+/**
+ * Uses FLUX Kontext (multi-image) to drop a SPECIFIC product into a room.
+ * Feeds two images — the room and the furniture's catalog photo — so the
+ * output contains the actual selected product, not a generic guess from text.
+ */
+export async function runFluxKontextMulti(params: {
+  roomDataUrl: string
+  furnitureImageUrl: string
+  prompt: string
+}): Promise<string> {
+  configure()
+
+  // Both images go to fal storage. The furniture is a retail-catalog URL that
+  // fal's own fetcher often can't reach, so we always proxy it through our server.
+  const roomUrl = await uploadDataUrl(params.roomDataUrl)
+  const furnitureUrl = params.furnitureImageUrl.startsWith('data:')
+    ? await uploadDataUrl(params.furnitureImageUrl)
+    : await uploadRemoteImage(params.furnitureImageUrl)
+
+  const result = await fal.subscribe('fal-ai/flux-pro/kontext/max/multi', {
+    input: {
+      prompt:        params.prompt,
+      image_urls:    [roomUrl, furnitureUrl],
+      safety_tolerance: '3',
+      output_format: 'jpeg',
     },
   })
 
