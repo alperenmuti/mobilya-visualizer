@@ -1,7 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
-import { ArrowLeft, Layers, Replace, ArrowRight, Building2, Loader2 } from 'lucide-react'
+import { ArrowLeft, Layers, Replace, ArrowRight, Building2, Loader2, Wand2, Trash2 } from 'lucide-react'
 import type { Tenant } from '@/lib/types'
 
 export default function AppSelectorPage() {
@@ -57,6 +57,22 @@ export default function AppSelectorPage() {
               description="Odandaki bir mobilyaya tıkla, listeden yenisini seç — sadece o mobilya değişir."
               steps={['Oda fotoğrafı yükle', 'Değiştirmek istediğine tıkla', 'Yeni mobilyayı seç', 'AI değişikliği uygular']}
             />
+            <ModeCard
+              href={`/app/design?brand=${brand}`}
+              icon={<Wand2 size={32} style={{ color: 'var(--accent)' }} />}
+              title="Baştan Dizayn Et"
+              subtitle="Stil seç"
+              description="Boş oda yükle, 6 farklı tarzdan birini seç — AI odayı baştan döşesin."
+              steps={['Boş oda fotoğrafı yükle', 'Dekorasyon stili seç', 'AI odayı tamamen döşer']}
+            />
+            <ModeCard
+              href={`/app/empty?brand=${brand}`}
+              icon={<Trash2 size={32} style={{ color: 'var(--accent)' }} />}
+              title="Odayı Boşalt"
+              subtitle="Eşyaları kaldır"
+              description="Dolu odayı yükle — AI tüm mobilya ve eşyaları kaldırır, satışa hazır boş oda gösterir."
+              steps={['Dolu oda fotoğrafı yükle', 'AI tüm eşyaları kaldırır', 'Temiz boş oda indir']}
+            />
           </div>
         </main>
       </div>
@@ -94,6 +110,22 @@ export default function AppSelectorPage() {
               subtitle="Dolu odada"
               description="Odandaki bir mobilyaya tıkla, listeden yenisini seç — sadece o mobilya değişir."
               steps={['Oda fotoğrafı yükle', 'Değiştirmek istediğine tıkla', 'Yeni mobilyayı seç', 'AI değişikliği uygular']}
+            />
+            <ModeCard
+              href="/app/design"
+              icon={<Wand2 size={32} style={{ color: 'var(--accent)' }} />}
+              title="Baştan Dizayn Et"
+              subtitle="Stil seç"
+              description="Boş oda yükle, 6 farklı tarzdan birini seç — AI odayı baştan döşesin."
+              steps={['Boş oda fotoğrafı yükle', 'Dekorasyon stili seç', 'AI odayı tamamen döşer']}
+            />
+            <ModeCard
+              href="/app/empty"
+              icon={<Trash2 size={32} style={{ color: 'var(--accent)' }} />}
+              title="Odayı Boşalt"
+              subtitle="Eşyaları kaldır"
+              description="Dolu odayı yükle — AI tüm mobilya ve eşyaları kaldırır, satışa hazır boş oda gösterir."
+              steps={['Dolu oda fotoğrafı yükle', 'AI tüm eşyaları kaldırır', 'Temiz boş oda indir']}
             />
           </div>
         </main>

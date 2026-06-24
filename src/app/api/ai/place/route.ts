@@ -19,39 +19,39 @@ export async function POST(req: NextRequest) {
     const placement = describePlacement(clickX ?? 0.5, clickY ?? 0.7, furnitureName)
     const { mimeType, data } = dataUrlToInlineData(imageDataUrl)
 
-    const prompt = `Task: add a "${furnitureName}" to this room photo. Output a photorealistic composite image — no text, no labels.
+    const prompt = `Task: add a "${furnitureName}" to this room photo. Output a photorealistic composite image — no text, no labels anywhere.
 
-PLACEMENT — HIGHEST PRIORITY:
+PLACEMENT — NON-NEGOTIABLE:
 The user selected floor position (${pctX}% from left, ${pctY}% from top).
-Place the furniture's base center exactly at that pixel. Do not move it to a position you prefer.
+Place the furniture's base center exactly at that coordinate. Do not relocate it.
 
 ${placement}
 
-Scene analysis (do before placing):
-- Trace the floor perspective vanishing lines.
-- Find floor-wall junctions for each wall.
-- Note shadow direction, light source angle.
-- Scale reference: door ~200cm tall, ceiling ~250cm.
-- Floor material and texture.
+DEPTH & PERSPECTIVE ANALYSIS (critical — do this before placing):
+1. Find the room's vanishing point(s) — trace floor tile lines, baseboard, or wall edges to the horizon.
+2. Measure the apparent height of a door or ceiling at different depths in the photo. Use this to build a scale map.
+3. The click position (${pctX}%, ${pctY}%) is at a specific depth in the 3D room. Objects at this depth obey perspective:
+   - Objects near the vanishing point (high Y% or deep in room) appear small.
+   - Objects near the camera (low Y% or close) appear large.
+4. Resize the furniture to match EXACTLY the perspective scale at position (${pctX}%, ${pctY}%).
+   Compare: if a door at the same depth appears X pixels tall, a 200cm door = X pixels → sofa at 85cm = X * 0.425 pixels tall.
 
-Perspective & scale:
-- Align furniture to the room vanishing points; base edges parallel to floor lines.
-- Vertical edges truly vertical.
-- Sizes: sofa ~85cm tall / 200cm wide; armchair ~80cm / 80cm; wardrobe ~200cm / 90cm; dining table ~75cm tall.
-- Depth scale: ${pctY < 40 ? 'far from camera — render smaller' : pctY > 65 ? 'close to camera — render larger' : 'mid-depth — standard scale'}.
+WALL & FLOOR CONTACT:
+- All furniture feet/base points must sit exactly on the floor plane at the anchor coordinate.
+- Follow the WALL RULE from placement instructions above.
 
-Lighting:
-- Match existing light source direction. Add contact shadow beneath furniture.
+LIGHTING:
+- Match the room's light source direction. Cast a contact shadow on the floor.
 - Do not change room brightness, color temperature, or ambient light.
 
-Style:
-- Real photo: photorealistic rendering. 3D render: match its render style.
-- Match sharpness, grain, depth-of-field, and color profile.
+STYLE:
+- Real photo → photorealistic. 3D render → match its render style.
+- Match sharpness, grain, depth-of-field, and color profile of the original.
 
-Rules:
-- Furniture base center at (${pctX}%, ${pctY}%) — no repositioning
-- All feet/base must touch the floor — no floating
-- Do not alter walls, floor, ceiling, windows, doors, or any existing objects
+RULES:
+- Furniture base center stays at (${pctX}%, ${pctY}%) — no repositioning
+- No floating — all feet/base must contact the floor
+- Do not modify walls, floor, ceiling, windows, doors, or existing objects
 - Do not add accessories, pillows, or plants
 - Do not write any text or labels in the output image`
 
