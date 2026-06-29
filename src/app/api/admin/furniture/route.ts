@@ -1,13 +1,11 @@
 import { NextRequest } from 'next/server'
-import { cookies } from 'next/headers'
 
-async function verifyAdmin() {
-  const cookieStore = await cookies()
-  return !!cookieStore.get('admin_session')?.value
+function verifyAdmin(req: NextRequest): boolean {
+  return !!req.cookies.get('admin_session')?.value
 }
 
 export async function GET(req: NextRequest) {
-  if (!await verifyAdmin()) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!verifyAdmin(req)) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL.startsWith('your_')) {
     return Response.json({ items: [] })
@@ -28,7 +26,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  if (!await verifyAdmin()) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!verifyAdmin(req)) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json()
   const { name, image_url, product_url, category, price, description, tenant_id } = body
@@ -56,7 +54,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  if (!await verifyAdmin()) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!verifyAdmin(req)) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { id } = await req.json()
   if (!id) return Response.json({ error: 'ID gerekli' }, { status: 400 })

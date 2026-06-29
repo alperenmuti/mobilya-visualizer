@@ -1,5 +1,4 @@
-import { NextRequest } from 'next/server'
-import { cookies } from 'next/headers'
+import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(req: NextRequest) {
   try {
@@ -9,32 +8,31 @@ export async function POST(req: NextRequest) {
     const adminPassword = process.env.ADMIN_PASSWORD
 
     if (!adminEmail || !adminPassword) {
-      return Response.json({ error: 'Admin yapılandırılmamış' }, { status: 500 })
+      return NextResponse.json({ error: 'Admin yapılandırılmamış' }, { status: 500 })
     }
 
     if (email !== adminEmail || password !== adminPassword) {
-      // Prevent timing attacks with a small delay
       await new Promise(r => setTimeout(r, 300))
-      return Response.json({ error: 'E-posta veya şifre hatalı' }, { status: 401 })
+      return NextResponse.json({ error: 'E-posta veya şifre hatalı' }, { status: 401 })
     }
 
-    const cookieStore = await cookies()
-    cookieStore.set('admin_session', Buffer.from(`${email}:${Date.now()}`).toString('base64'), {
+    const sessionValue = Buffer.from(`${email}:${Date.now()}`).toString('base64')
+    const response = NextResponse.json({ ok: true })
+    response.cookies.set('admin_session', sessionValue, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 60 * 60 * 8, // 8 hours
+      maxAge: 60 * 60 * 8,
       path: '/',
     })
-
-    return Response.json({ ok: true })
+    return response
   } catch (err) {
-    return Response.json({ error: (err as Error).message }, { status: 500 })
+    return NextResponse.json({ error: (err as Error).message }, { status: 500 })
   }
 }
 
 export async function DELETE() {
-  const cookieStore = await cookies()
-  cookieStore.delete('admin_session')
-  return Response.json({ ok: true })
+  const response = NextResponse.json({ ok: true })
+  response.cookies.delete('admin_session')
+  return response
 }
