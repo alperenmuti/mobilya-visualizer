@@ -31,16 +31,14 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         </nav>
 
         <div className="p-3 border-t" style={{ borderColor: 'var(--border)' }}>
-          <form action="/api/admin/login" method="DELETE">
-            <Link
-              href="/api/admin/logout"
-              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors hover:bg-gray-100 w-full"
-              style={{ color: 'var(--muted-fg)' }}
-            >
-              <LogOut size={14} />
-              Çıkış Yap
-            </Link>
-          </form>
+          <Link
+            href="/api/admin/logout"
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors hover:bg-gray-100 w-full"
+            style={{ color: 'var(--muted-fg)' }}
+          >
+            <LogOut size={14} />
+            Çıkış Yap
+          </Link>
         </div>
       </aside>
 

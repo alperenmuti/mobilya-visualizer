@@ -1,9 +1,8 @@
-import { NextRequest } from 'next/server'
-import { cookies } from 'next/headers'
-import { redirect } from 'next/navigation'
+import { NextRequest, NextResponse } from 'next/server'
 
-export async function GET(_req: NextRequest) {
-  const cookieStore = await cookies()
-  cookieStore.delete('admin_session')
-  redirect('/admin/login')
+export async function GET(req: NextRequest) {
+  const origin = req.nextUrl.origin
+  const response = NextResponse.redirect(`${origin}/admin/login`)
+  response.cookies.delete('admin_session')
+  return response
 }
