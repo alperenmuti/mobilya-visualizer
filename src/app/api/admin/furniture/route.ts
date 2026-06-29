@@ -1,7 +1,9 @@
 import { NextRequest } from 'next/server'
 
 function verifyAdmin(req: NextRequest): boolean {
-  return !!req.cookies.get('admin_session')?.value
+  if (req.cookies.get('admin_session')?.value) return true
+  const auth = req.headers.get('authorization') ?? ''
+  return auth.startsWith('Bearer ') && auth.length > 7
 }
 
 export async function GET(req: NextRequest) {

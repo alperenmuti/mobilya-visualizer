@@ -16,9 +16,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'E-posta veya şifre hatalı' }, { status: 401 })
     }
 
-    const sessionValue = Buffer.from(`${email}:${Date.now()}`).toString('base64')
-    const response = NextResponse.json({ ok: true })
-    response.cookies.set('admin_session', sessionValue, {
+    const token = Buffer.from(`${email}:${Date.now()}`).toString('base64')
+    const response = NextResponse.json({ ok: true, token })
+    response.cookies.set('admin_session', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',

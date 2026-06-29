@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react'
 import { Plus, Trash2, Loader2, Building2, X, Check, AlertCircle, Copy } from 'lucide-react'
 import type { Tenant } from '@/lib/types'
 import { slugify } from '@/lib/utils'
+import { getAdminAuthHeaders } from '@/lib/adminAuth'
 
 export default function TenantsPage() {
   const [tenants, setTenants] = useState<Tenant[]>([])
@@ -17,7 +18,7 @@ export default function TenantsPage() {
   const [copied, setCopied] = useState<string | null>(null)
 
   useEffect(() => {
-    fetch('/api/admin/tenants')
+    fetch('/api/admin/tenants', { headers: getAdminAuthHeaders() })
       .then(r => r.json())
       .then(d => { setTenants(d.tenants ?? []); setLoading(false) })
       .catch(() => setLoading(false))
@@ -38,7 +39,7 @@ export default function TenantsPage() {
     setError('')
     const res = await fetch('/api/admin/tenants', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...getAdminAuthHeaders() },
       body: JSON.stringify({ name, slug }),
     })
     const data = await res.json()
@@ -56,7 +57,7 @@ export default function TenantsPage() {
     setDeleteId(id)
     const res = await fetch('/api/admin/tenants', {
       method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...getAdminAuthHeaders() },
       body: JSON.stringify({ id }),
     })
     if (res.ok) setTenants(prev => prev.filter(t => t.id !== id))

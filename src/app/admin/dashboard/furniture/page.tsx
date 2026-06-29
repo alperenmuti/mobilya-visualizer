@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react'
 import { Plus, Trash2, Link2, Loader2, AlertCircle, Check, X } from 'lucide-react'
 import Link from 'next/link'
 import type { FurnitureItem, Tenant } from '@/lib/types'
+import { getAdminAuthHeaders } from '@/lib/adminAuth'
 
 interface FormState {
   name: string; image_url: string; product_url: string
@@ -29,7 +30,7 @@ export default function FurnitureCatalogPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null)
 
   useEffect(() => {
-    fetch('/api/admin/tenants')
+    fetch('/api/admin/tenants', { headers: getAdminAuthHeaders() })
       .then(r => r.json())
       .then(d => { setTenants(d.tenants ?? []); setTenantsLoading(false) })
       .catch(() => setTenantsLoading(false))
@@ -40,7 +41,7 @@ export default function FurnitureCatalogPage() {
     const url = selectedTenantId !== 'all'
       ? `/api/admin/furniture?tenant_id=${selectedTenantId}`
       : '/api/admin/furniture'
-    fetch(url)
+    fetch(url, { headers: getAdminAuthHeaders() })
       .then(r => r.json())
       .then(d => { setItems(d.items ?? []); setLoading(false) })
       .catch(() => setLoading(false))
@@ -84,7 +85,7 @@ export default function FurnitureCatalogPage() {
     setSaving(true)
     const res = await fetch('/api/admin/furniture', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...getAdminAuthHeaders() },
       body: JSON.stringify(form),
     })
     const data = await res.json()
@@ -101,7 +102,7 @@ export default function FurnitureCatalogPage() {
     setDeleteId(id)
     const res = await fetch('/api/admin/furniture', {
       method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...getAdminAuthHeaders() },
       body: JSON.stringify({ id }),
     })
     if (res.ok) setItems(prev => prev.filter(i => i.id !== id))

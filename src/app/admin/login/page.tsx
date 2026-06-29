@@ -24,6 +24,7 @@ export default function AdminLoginPage() {
       })
       const data = await res.json()
       if (!res.ok) { setError(data.error ?? 'Giriş başarısız'); setLoading(false); return }
+      if (data.token) sessionStorage.setItem('admin_token', data.token)
       router.push('/admin/dashboard')
     } catch {
       setError('Bağlantı hatası')
