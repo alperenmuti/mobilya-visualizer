@@ -1,5 +1,8 @@
 import { NextRequest } from 'next/server'
 
+export const runtime = 'edge'
+export const maxDuration = 30
+
 function getOgTag(html: string, prop: string): string | null {
   // Handles both quote types and both attribute orderings
   const re1 = new RegExp(`<meta[^>]+property=["']og:${prop}["'][^>]+content=["']([^"']+)["']`, 'i')
@@ -61,37 +64,18 @@ function decodeUnicode(s: string): string {
 }
 
 async function fetchHtml(url: string): Promise<string> {
-  // Use ScrapingAnt when available — bypasses Cloudflare from cloud IPs
-  const antKey = process.env.SCRAPINGANT_KEY
-  if (antKey) {
-    // browser=true uses headless Chrome — bypasses Cloudflare JS challenges
-    const antUrl = `https://api.scrapingant.com/v2/general?url=${encodeURIComponent(url)}&browser=true`
-    const res = await fetch(antUrl, {
-      headers: { 'x-api-key': antKey },
-      signal: AbortSignal.timeout(30000),
-    })
-    const text = await res.text()
-    if (!res.ok) throw new Error(`ScrapingAnt ${res.status}: ${text.slice(0, 200)}`)
-    try {
-      const json = JSON.parse(text)
-      return json.content ?? json.html ?? text
-    } catch {
-      return text
-    }
-  }
-
-  // Direct fetch (works locally, blocked on Vercel for Cloudflare-protected sites)
   const res = await fetch(url, {
     headers: {
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-      'Accept-Language': 'tr-TR,tr;q=0.9,en;q=0.8',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+      'Accept-Language': 'tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7',
+      'Cache-Control': 'no-cache',
       'Sec-Fetch-Dest': 'document',
       'Sec-Fetch-Mode': 'navigate',
       'Sec-Fetch-Site': 'none',
+      'Sec-Fetch-User': '?1',
       'Upgrade-Insecure-Requests': '1',
     },
-    signal: AbortSignal.timeout(12000),
   })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   return res.text()
