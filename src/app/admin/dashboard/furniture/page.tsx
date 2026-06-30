@@ -1,6 +1,5 @@
 'use client'
 import React, { useState, useEffect, useCallback } from 'react'
-import { useSearchParams } from 'next/navigation'
 import { Plus, Trash2, Link2, Loader2, AlertCircle, Check, X, Bookmark } from 'lucide-react'
 import Link from 'next/link'
 import type { FurnitureItem, Tenant } from '@/lib/types'
@@ -17,7 +16,6 @@ const EMPTY = (tenantId = ''): FormState => ({
 const CATEGORIES = ['Koltuk', 'Masa', 'Sandalye', 'Depolama', 'Aydınlatma', 'Tekstil', 'Aksesuar', 'Diğer']
 
 export default function FurnitureCatalogPage() {
-  const searchParams = useSearchParams()
   const [tenants, setTenants] = useState<Tenant[]>([])
   const [tenantsLoading, setTenantsLoading] = useState(true)
   const [selectedTenantId, setSelectedTenantId] = useState<string>('all')
@@ -35,18 +33,19 @@ export default function FurnitureCatalogPage() {
 
   // Auto-fill form from bookmarklet query params
   useEffect(() => {
-    if (searchParams.get('scrape') !== '1') return
-    const name = searchParams.get('name') ?? ''
-    const image_url = searchParams.get('image_url') ?? ''
-    const price = searchParams.get('price') ?? ''
-    const category = searchParams.get('category') ?? ''
-    const product_url = searchParams.get('product_url') ?? ''
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('scrape') !== '1') return
+    const name = params.get('name') ?? ''
+    const image_url = params.get('image_url') ?? ''
+    const price = params.get('price') ?? ''
+    const category = params.get('category') ?? ''
+    const product_url = params.get('product_url') ?? ''
     if (name || image_url) {
       setForm(p => ({ ...p, name, image_url, price, category, product_url }))
       setShowForm(true)
       window.history.replaceState({}, '', '/admin/dashboard/furniture')
     }
-  }, [searchParams])
+  }, [])
 
   useEffect(() => {
     fetch('/api/admin/tenants', { headers: getAdminAuthHeaders() })
