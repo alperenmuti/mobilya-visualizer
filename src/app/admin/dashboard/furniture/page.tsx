@@ -1,6 +1,7 @@
 'use client'
-import React, { useState, useEffect } from 'react'
-import { Plus, Trash2, Link2, Loader2, AlertCircle, Check, X } from 'lucide-react'
+import React, { useState, useEffect, useCallback } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { Plus, Trash2, Link2, Loader2, AlertCircle, Check, X, Bookmark } from 'lucide-react'
 import Link from 'next/link'
 import type { FurnitureItem, Tenant } from '@/lib/types'
 import { getAdminAuthHeaders } from '@/lib/adminAuth'
@@ -16,6 +17,7 @@ const EMPTY = (tenantId = ''): FormState => ({
 const CATEGORIES = ['Koltuk', 'Masa', 'Sandalye', 'Depolama', 'Aydınlatma', 'Tekstil', 'Aksesuar', 'Diğer']
 
 export default function FurnitureCatalogPage() {
+  const searchParams = useSearchParams()
   const [tenants, setTenants] = useState<Tenant[]>([])
   const [tenantsLoading, setTenantsLoading] = useState(true)
   const [selectedTenantId, setSelectedTenantId] = useState<string>('all')
@@ -28,6 +30,23 @@ export default function FurnitureCatalogPage() {
   const [saving, setSaving] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [showBookmarklet, setShowBookmarklet] = useState(false)
+  const [bookmarkletCopied, setBookmarkletCopied] = useState(false)
+
+  // Auto-fill form from bookmarklet query params
+  useEffect(() => {
+    if (searchParams.get('scrape') !== '1') return
+    const name = searchParams.get('name') ?? ''
+    const image_url = searchParams.get('image_url') ?? ''
+    const price = searchParams.get('price') ?? ''
+    const category = searchParams.get('category') ?? ''
+    const product_url = searchParams.get('product_url') ?? ''
+    if (name || image_url) {
+      setForm(p => ({ ...p, name, image_url, price, category, product_url }))
+      setShowForm(true)
+      window.history.replaceState({}, '', '/admin/dashboard/furniture')
+    }
+  }, [searchParams])
 
   useEffect(() => {
     fetch('/api/admin/tenants', { headers: getAdminAuthHeaders() })
@@ -53,6 +72,11 @@ export default function FurnitureCatalogPage() {
     setScrapeError('')
     setShowForm(true)
   }
+
+  const getBookmarkletCode = useCallback(() => {
+    const adminUrl = window.location.origin + '/admin/dashboard/furniture'
+    return `javascript:(function(){var img=document.querySelector('meta[property="og:image"]')?.getAttribute('content')||'';var name=(document.querySelector('h1')?.textContent||'').trim();var html=document.documentElement.innerHTML;var price='',cat='';var idx=html.indexOf('"reference":"product detail"');if(idx>=0){try{var s=html.lastIndexOf('{',idx),e=html.indexOf('}',idx);var o=JSON.parse(html.slice(s,e+1));price=o.price?Math.round(o.price).toLocaleString('tr-TR')+' ₺':'';cat=o.category||'';}catch(ex){}}var p=new URLSearchParams({scrape:'1',name,image_url:img,price,category:cat,product_url:location.href});window.open('${adminUrl}?'+p.toString(),'_blank');})()`
+  }, [])
 
   const handleScrape = async () => {
     if (!scrapeUrl) return
@@ -117,15 +141,51 @@ export default function FurnitureCatalogPage() {
           <h1 className="text-2xl font-bold mb-0.5">Mobilya Kataloğu</h1>
           <p className="text-sm" style={{ color: 'var(--muted-fg)' }}>{items.length} ürün</p>
         </div>
-        <button
-          onClick={handleOpenForm}
-          disabled={tenants.length === 0}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed"
-          style={{ background: 'linear-gradient(135deg, #C4A882, #9A7E5C)' }}
-        >
-          <Plus size={15} /> Ürün Ekle
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowBookmarklet(b => !b)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium border"
+            style={{ color: 'var(--muted-fg)', borderColor: 'var(--border)' }}
+          >
+            <Bookmark size={13} /> Hızlı Ekle
+          </button>
+          <button
+            onClick={handleOpenForm}
+            disabled={tenants.length === 0}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ background: 'linear-gradient(135deg, #C4A882, #9A7E5C)' }}
+          >
+            <Plus size={15} /> Ürün Ekle
+          </button>
+        </div>
       </div>
+
+      {showBookmarklet && (
+        <div className="mb-5 p-4 rounded-2xl text-sm" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
+          <p className="font-semibold mb-1">Bookmarklet ile Hızlı Ürün Ekleme</p>
+          <p className="text-xs mb-3" style={{ color: 'var(--muted-fg)' }}>
+            İstikbal, Bellona gibi sitelerde ürün sayfasındayken tıkla — isim, görsel, fiyat, kategori otomatik gelir.
+          </p>
+          <ol className="text-xs space-y-1 mb-3" style={{ color: 'var(--muted-fg)' }}>
+            <li>1. Aşağıdaki kodu kopyala</li>
+            <li>2. Tarayıcıda yeni bir yer imi (bookmark) oluştur</li>
+            <li>3. İsim: <strong>Mobilya Ekle</strong> — URL alanına kodu yapıştır</li>
+            <li>4. Artık herhangi bir ürün sayfasında bu yer imine tıkla</li>
+          </ol>
+          <div className="flex items-center gap-2">
+            <code className="flex-1 text-xs px-3 py-2 rounded-xl overflow-hidden text-ellipsis whitespace-nowrap" style={{ background: 'var(--muted)', color: 'var(--muted-fg)' }}>
+              {getBookmarkletCode()}
+            </code>
+            <button
+              onClick={() => { navigator.clipboard.writeText(getBookmarkletCode()); setBookmarkletCopied(true); setTimeout(() => setBookmarkletCopied(false), 2000) }}
+              className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-white"
+              style={{ background: 'linear-gradient(135deg, #C4A882, #9A7E5C)' }}
+            >
+              {bookmarkletCopied ? <><Check size={12} /> Kopyalandı</> : <><Link2 size={12} /> Kopyala</>}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Tenant tabs */}
       {tenantsLoading ? (
