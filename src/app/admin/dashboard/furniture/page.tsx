@@ -87,8 +87,10 @@ export default function FurnitureCatalogPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: scrapeUrl }),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error)
+      const text = await res.text()
+      let data: { name?: string; image_url?: string; product_url?: string; price?: string; description?: string; category?: string; error?: string }
+      try { data = JSON.parse(text) } catch { throw new Error('Sunucu hatası: ' + text.slice(0, 80)) }
+      if (!res.ok) throw new Error(data.error as string)
       setForm(p => ({
         ...p,
         name: data.name ?? '',

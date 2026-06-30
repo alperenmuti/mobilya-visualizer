@@ -1,8 +1,5 @@
 import { NextRequest } from 'next/server'
 
-export const runtime = 'edge'
-export const maxDuration = 30
-
 function getOgTag(html: string, prop: string): string | null {
   // Handles both quote types and both attribute orderings
   const re1 = new RegExp(`<meta[^>]+property=["']og:${prop}["'][^>]+content=["']([^"']+)["']`, 'i')
