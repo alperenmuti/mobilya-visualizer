@@ -2,17 +2,46 @@
 import Link from 'next/link'
 import { Suspense } from 'react'
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { useSearchParams } from 'next/navigation'
-import { ArrowLeft, Replace, ArrowRight, Building2, Loader2, Wand2, Trash2, Sparkles, Sofa } from 'lucide-react'
+import { ArrowLeft, Replace, ArrowRight, Building2, Loader2, Wand2, Trash2, Sparkles, Sofa, LogOut } from 'lucide-react'
 import CreditBadge from '@/components/CreditBadge'
 import type { Tenant } from '@/lib/types'
 
 function AppSelectorContent() {
   const searchParams = useSearchParams()
+  const router = useRouter()
   const brand = searchParams.get('brand') ?? ''
 
   const [tenants, setTenants] = useState<Tenant[]>([])
   const [tenantsLoading, setTenantsLoading] = useState(false)
+  const [loggedIn, setLoggedIn] = useState(false)
+
+  // Check session cookie — if no brand in URL but session exists, redirect
+  useEffect(() => {
+    if (brand) return
+    fetch('/api/app/me')
+      .then(r => r.json())
+      .then(d => {
+        if (d.tenant?.slug) router.replace(`/app?brand=${d.tenant.slug}`)
+      })
+      .catch(() => {})
+  }, [brand, router])
+
+  // Track if logged in via cookie (for logout button)
+  useEffect(() => {
+    if (!brand) return
+    fetch('/api/app/me')
+      .then(r => r.json())
+      .then(d => { if (d.tenant?.slug === brand) setLoggedIn(true) })
+      .catch(() => {})
+  }, [brand])
+
+  const handleLogout = async () => {
+    await fetch('/api/app/login', { method: 'DELETE' })
+    setLoggedIn(false)
+    router.push('/app/login')
+  }
 
   useEffect(() => {
     if (brand !== '') return
@@ -32,7 +61,18 @@ function AppSelectorContent() {
             <ArrowLeft size={18} style={{ color: 'var(--muted-fg)' }} />
           </Link>
           <span className="font-semibold text-sm">Mobilya Görselleştirici</span>
-          <div className="ml-auto"><CreditBadge brand={brand} /></div>
+          <div className="ml-auto flex items-center gap-2">
+            <CreditBadge brand={brand} />
+            {loggedIn && (
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-gray-100 transition-colors"
+                style={{ color: 'var(--muted-fg)' }}
+              >
+                <LogOut size={13} /> Çıkış
+              </button>
+            )}
+          </div>
         </header>
         <main className="flex-1 flex flex-col items-center justify-center px-6 py-16">
           <h2 className="text-2xl font-bold mb-2 text-center">Ne yapmak istersiniz?</h2>

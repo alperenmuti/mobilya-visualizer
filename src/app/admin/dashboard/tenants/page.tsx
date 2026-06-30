@@ -1,6 +1,6 @@
 'use client'
 import React, { useState, useEffect } from 'react'
-import { Plus, Trash2, Loader2, Building2, X, Check, AlertCircle, Copy, Coins } from 'lucide-react'
+import { Plus, Trash2, Loader2, Building2, X, Check, AlertCircle, Copy, Coins, KeyRound } from 'lucide-react'
 import type { Tenant } from '@/lib/types'
 import { slugify } from '@/lib/utils'
 import { getAdminAuthHeaders } from '@/lib/adminAuth'
@@ -20,6 +20,12 @@ export default function TenantsPage() {
   const [creditInputs, setCreditInputs] = useState<Record<string, string>>({})
   const [creditSaving, setCreditSaving] = useState<string | null>(null)
   const [creditMsg, setCreditMsg] = useState<Record<string, string>>({})
+  // Login credentials management
+  const [loginOpen, setLoginOpen] = useState<string | null>(null)
+  const [loginEmail, setLoginEmail] = useState('')
+  const [loginPassword, setLoginPassword] = useState('')
+  const [loginSaving, setLoginSaving] = useState(false)
+  const [loginMsg, setLoginMsg] = useState('')
 
   useEffect(() => {
     fetch('/api/admin/tenants', { headers: getAdminAuthHeaders() })
@@ -86,6 +92,34 @@ export default function TenantsPage() {
       setTimeout(() => setCreditMsg(prev => { const n = { ...prev }; delete n[tenant.id]; return n }), 2500)
     }
     setCreditSaving(null)
+  }
+
+  const openLoginEditor = (tenant: Tenant) => {
+    setLoginOpen(tenant.id)
+    setLoginEmail(tenant.login_email ?? '')
+    setLoginPassword('')
+    setLoginMsg('')
+  }
+
+  const handleSaveLogin = async (tenantId: string) => {
+    if (!loginEmail) return
+    setLoginSaving(true)
+    setLoginMsg('')
+    const res = await fetch('/api/admin/tenants', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...getAdminAuthHeaders() },
+      body: JSON.stringify({ id: tenantId, login_email: loginEmail, login_password: loginPassword || undefined }),
+    })
+    const data = await res.json()
+    if (res.ok) {
+      setTenants(prev => prev.map(t => t.id === tenantId ? { ...t, login_email: data.tenant.login_email } : t))
+      setLoginMsg('✓ Kaydedildi')
+      setLoginPassword('')
+      if (!loginPassword) setTimeout(() => setLoginOpen(null), 800)
+    } else {
+      setLoginMsg(data.error ?? 'Hata')
+    }
+    setLoginSaving(false)
   }
 
   const copyLink = (slug: string) => {
@@ -248,6 +282,14 @@ export default function TenantsPage() {
               </div>
               <div className="flex items-start gap-1 flex-shrink-0">
                 <button
+                  onClick={() => openLoginEditor(tenant)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors hover:bg-gray-100"
+                  style={{ color: tenant.login_email ? '#16A34A' : 'var(--muted-fg)' }}
+                  title="Giriş bilgileri"
+                >
+                  <KeyRound size={12} /> {tenant.login_email ? 'Giriş Var' : 'Giriş Ekle'}
+                </button>
+                <button
                   onClick={() => copyLink(tenant.slug)}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors hover:bg-gray-100"
                   style={{ color: copied === tenant.slug ? '#16A34A' : 'var(--muted-fg)' }}
@@ -265,6 +307,50 @@ export default function TenantsPage() {
                   {deleteId === tenant.id ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
                 </button>
               </div>
+
+              {/* Login credentials editor (inline panel) */}
+              {loginOpen === tenant.id && (
+                <div
+                  className="mt-3 pt-3 w-full"
+                  style={{ borderTop: '1px solid var(--border)' }}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs font-semibold flex items-center gap-1"><KeyRound size={11} /> Giriş Bilgileri</p>
+                    <button onClick={() => setLoginOpen(null)} style={{ color: 'var(--muted-fg)' }}><X size={13} /></button>
+                  </div>
+                  <div className="flex flex-wrap gap-2 items-center">
+                    <input
+                      type="email"
+                      value={loginEmail}
+                      onChange={e => setLoginEmail(e.target.value)}
+                      placeholder="firma@example.com"
+                      className="flex-1 min-w-36 px-2 py-1 text-xs rounded-lg outline-none"
+                      style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
+                    />
+                    <input
+                      type="password"
+                      value={loginPassword}
+                      onChange={e => setLoginPassword(e.target.value)}
+                      placeholder={tenant.login_email ? 'Yeni şifre (boş = değiştirme)' : 'Şifre'}
+                      className="flex-1 min-w-36 px-2 py-1 text-xs rounded-lg outline-none"
+                      style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
+                    />
+                    <button
+                      onClick={() => handleSaveLogin(tenant.id)}
+                      disabled={loginSaving || !loginEmail}
+                      className="flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium text-white disabled:opacity-50"
+                      style={{ background: 'var(--accent)' }}
+                    >
+                      {loginSaving ? <Loader2 size={10} className="animate-spin" /> : <Check size={10} />} Kaydet
+                    </button>
+                    {loginMsg && (
+                      <span className="text-xs font-medium" style={{ color: loginMsg.startsWith('✓') ? '#16A34A' : '#DC2626' }}>
+                        {loginMsg}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>

@@ -5,6 +5,7 @@ export interface Tenant {
   logo_url?: string
   primary_color?: string
   credits: number
+  login_email?: string
   created_at: string
 }
 
