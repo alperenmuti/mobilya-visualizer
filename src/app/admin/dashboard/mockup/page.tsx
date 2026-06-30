@@ -128,7 +128,7 @@ export default function MockupPage() {
               <li>• Modern Salon</li>
               <li>• Sıcak Oturma Odası</li>
               <li>• Doğal & Bohem</li>
-              <li>• Minimalist</li>
+              <li>• Stüdyo Çekimi</li>
             </ul>
           </div>
           <button

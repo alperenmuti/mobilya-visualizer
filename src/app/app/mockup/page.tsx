@@ -142,7 +142,7 @@ function MockupContent() {
             <div className="p-4 rounded-xl" style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}>
               <p className="text-xs font-medium mb-2">Oluşturulacak 4 sahne:</p>
               <div className="grid grid-cols-2 gap-1.5">
-                {['Modern Salon', 'Sıcak Oturma Odası', 'Doğal & Bohem', 'Minimalist'].map(s => (
+                {['Modern Salon', 'Sıcak Oturma Odası', 'Doğal & Bohem', 'Stüdyo Çekimi'].map(s => (
                   <div key={s} className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--muted-fg)' }}>
                     <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: 'var(--accent)' }} />
                     {s}

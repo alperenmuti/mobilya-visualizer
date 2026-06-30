@@ -79,23 +79,46 @@ async function geminiPlace(
 ): Promise<string> {
   const { mimeType, data } = dataUrlToInlineData(imageDataUrl)
 
-  const positionLine = placementHint
-    ? `WHERE TO PLACE IT — follow this exactly:${markerDrawn ? ` There is a small orange dot drawn on the floor marking the exact target spot; put the furniture's base on that dot and hide the dot completely under the furniture.` : ''} ${placementHint}`
-    : `Place the "${furnitureName}" standing on the floor in a natural empty spot.`
+  // When the user marked a spot with the crosshair, lead with ONLY the visual
+  // marker reference. Mixing verbose text coordinates alongside a visual anchor
+  // causes Gemini to average or ignore the dot — keep it simple and visual-first.
+  let placementSection: string
+  if (markerDrawn) {
+    // Extract only the depth/scale cue from the hint (background/foreground) so
+    // we don't add conflicting left/right/centre text that overrides the dot.
+    const scaleNote =
+      placementHint?.includes('BACKGROUND') ? 'It is deep in the background — render it noticeably smaller and higher in the frame.' :
+      placementHint?.includes('FOREGROUND') ? 'It is close to the camera — render it larger.' :
+      'Render at natural medium scale for mid-distance depth.'
+
+    placementSection = `## WHERE TO PLACE THE FURNITURE (CRITICAL — follow exactly)
+An orange crosshair marker is drawn on the floor of the room photo.
+You MUST place the "${furnitureName}" so its base (floor-contact point) is centred on that crosshair.
+Do NOT move it elsewhere. Do NOT pick a "nicer" or "more natural" spot. The crosshair IS the target.
+The furniture must completely cover and hide the crosshair under its base.
+${scaleNote}`
+  } else if (placementHint) {
+    placementSection = `## WHERE TO PLACE THE FURNITURE\n${placementHint}`
+  } else {
+    placementSection = `## WHERE TO PLACE THE FURNITURE\nPlace the "${furnitureName}" standing on the floor in a natural empty spot.`
+  }
 
   const roomContext = roomTypeEn
-    ? `ROOM CONTEXT: This is a ${roomTypeEn}. Place the furniture in a way that suits a ${roomTypeEn}.`
+    ? `Room type: ${roomTypeEn} — place the furniture appropriately for this room.`
     : ''
 
-  const prompt = `Add a single "${furnitureName}" into this photo of a room. Return ONLY the edited image — no text.
-${roomContext ? `\n${roomContext}` : ''}
-THIS IS A LOCAL PHOTO EDIT, NOT A RE-RENDER. The output must be the SAME photograph with one piece of furniture added.
-- Keep the camera 100% unchanged: same camera angle, viewpoint, position, zoom, focal length, framing, crop, perspective and aspect ratio. Do NOT rotate, pan, zoom or re-frame the shot.
-- Keep the room and EVERYTHING already in it 100% unchanged: every wall, the floor, windows, doors, mouldings, colours, lighting, and any furniture or objects already present stay exactly as they are. Do NOT move, remove, repaint, restyle or regenerate any existing pixel.
-- The ONLY allowed change is adding the one new "${furnitureName}".
-- ${positionLine}
-- Render the furniture realistically: align it to the room's EXISTING perspective and vanishing lines, at correct real-world scale, all feet flat on the floor (never floating), with a soft contact shadow and lighting/white-balance matching the room.
-- Add nothing else — no extra furniture, decor, plants, people or text.`
+  const prompt = `${placementSection}
+
+## TASK
+Add a single "${furnitureName}" into the room photo. Return ONLY the edited image — no text.
+${roomContext ? roomContext + '\n' : ''}
+## PHOTO EDIT RULES (keep the room pixel-perfect)
+- This is a LOCAL edit, NOT a re-render. Output = same photograph + one furniture piece added.
+- Camera: same angle, viewpoint, zoom, framing, crop, aspect ratio — do NOT change.
+- Room: every wall, floor, window, door, colour, existing item stays exactly as-is — do NOT touch.
+- Only allowed change: add the "${furnitureName}" at the specified position.
+- Render it photorealistically: aligned to the room's perspective and vanishing lines, all legs flat on the floor (never floating), correct real-world scale, soft contact shadow, lighting matches the room.
+- Add nothing else — no extra items, decor, people or text.`
 
   const parts: Part[] = [
     { inlineData: { mimeType, data } },

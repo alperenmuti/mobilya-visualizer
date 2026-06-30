@@ -18,8 +18,8 @@ const SCENES = [
     prompt: 'a natural bohemian room, exposed brick or warm terracotta walls, plants, rattan and wood accents, soft warm lighting, earthy tones',
   },
   {
-    label: 'Minimalist',
-    prompt: 'a minimalist contemporary room, pure white walls, polished concrete floor, clean lines, no clutter, bright and airy, high-end architectural interior',
+    label: 'Stüdyo Çekimi',
+    prompt: 'STUDIO PRODUCT PHOTO — pure seamless white background, no room, no floor texture, no props, soft diffused studio lighting from multiple angles, no hard shadows, the product isolated on white, professional commercial catalogue photography',
   },
 ]
 
@@ -27,7 +27,20 @@ async function generateMockup(productDataUrl: string, productName: string, scene
   const { mimeType, data } = dataUrlToInlineData(productDataUrl)
   const model = getGeminiModel()
 
-  const prompt = `You are given a product photo of a "${productName}".
+  const isStudio = scene.label === 'Stüdyo Çekimi'
+
+  const prompt = isStudio
+    ? `You are given a product photo of a "${productName}".
+Generate a professional studio product photograph:
+- ${scene.prompt}
+- Reproduce the "${productName}" with the EXACT same shape, colour, texture and material from the product photo
+- The background must be pure seamless white (#FFFFFF) — no room, no floor, no props, no shadows on background
+- Use soft diffused studio lighting that wraps around the product, bringing out its texture and form
+- Ultra-sharp detail, neutral white-balance, magazine-cover quality
+- Output: only the studio product photo, no text, no labels
+
+Make it look like a premium e-commerce or catalogue product shot.`
+    : `You are given a product photo of a "${productName}".
 Generate a photorealistic interior design lifestyle photo that:
 - Features the "${productName}" from the product photo as the MAIN focal piece of furniture
 - Places it in ${scene.prompt}
