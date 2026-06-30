@@ -49,6 +49,25 @@ function extractProductJson(html: string): Record<string, unknown> | null {
   return null
 }
 
+const EN_TO_TR_CATEGORY: Record<string, string> = {
+  'sofa': 'Koltuk', 'sofa set': 'Koltuk Takımı', 'corner sofa': 'Köşe Koltuk',
+  'armchair': 'Berjer', 'loveseat': 'İkili Koltuk',
+  'dining table': 'Yemek Masası', 'kitchen table': 'Mutfak Masası', 'coffee table': 'Sehpa',
+  'table': 'Masa', 'desk': 'Çalışma Masası', 'side table': 'Yan Sehpa',
+  'chair': 'Sandalye', 'dining chair': 'Yemek Sandalyesi', 'office chair': 'Ofis Koltuğu',
+  'bed': 'Yatak', 'bed frame': 'Karyola', 'bedroom set': 'Yatak Odası Takımı',
+  'wardrobe': 'Gardırop', 'closet': 'Dolap', 'bookcase': 'Kitaplık', 'shelf': 'Raf',
+  'tv unit': 'TV Ünitesi', 'tv stand': 'TV Ünitesi', 'buffet': 'Büfe',
+  'nightstand': 'Komodin', 'dresser': 'Şifonyer', 'chest of drawers': 'Şifonyer',
+  'carpet': 'Halı', 'rug': 'Halı', 'lighting': 'Aydınlatma', 'lamp': 'Lamba',
+  'ottoman': 'Puf', 'bench': 'Bank', 'bunk bed': 'Ranza',
+}
+
+function localizeCategory(raw: string): string {
+  const key = raw.toLowerCase().trim()
+  return EN_TO_TR_CATEGORY[key] ?? raw
+}
+
 function formatPrice(raw: unknown): string | null {
   if (!raw) return null
   if (typeof raw === 'number') {
@@ -64,21 +83,33 @@ function decodeUnicode(s: string): string {
 }
 
 async function fetchHtml(url: string): Promise<string> {
-  const res = await fetch(url, {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-      'Accept-Language': 'tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7',
-      'Cache-Control': 'no-cache',
-      'Sec-Fetch-Dest': 'document',
-      'Sec-Fetch-Mode': 'navigate',
-      'Sec-Fetch-Site': 'none',
-      'Sec-Fetch-User': '?1',
-      'Upgrade-Insecure-Requests': '1',
-    },
-  })
+  const headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+    'Accept-Language': 'tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7',
+    'Cache-Control': 'no-cache',
+    'Sec-Fetch-Dest': 'document',
+    'Sec-Fetch-Mode': 'navigate',
+    'Sec-Fetch-Site': 'none',
+    'Sec-Fetch-User': '?1',
+    'Upgrade-Insecure-Requests': '1',
+  }
+  const res = await fetch(url, { headers })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.text()
+  const html = await res.text()
+
+  // Follow JS redirect: window.location.href = "..."
+  const jsRedirect = html.match(/window\.location\.href\s*=\s*["']([^"']+)["']/)
+  if (jsRedirect && html.length < 500) {
+    const redirectUrl = jsRedirect[1].startsWith('http')
+      ? jsRedirect[1]
+      : new URL(jsRedirect[1], url).href
+    const res2 = await fetch(redirectUrl, { headers })
+    if (!res2.ok) throw new Error(`HTTP ${res2.status}`)
+    return res2.text()
+  }
+
+  return html
 }
 
 export async function POST(req: NextRequest) {
@@ -107,7 +138,7 @@ export async function POST(req: NextRequest) {
     const price = formatPrice(p?.price ?? (p?.offers as Record<string,unknown>)?.price ?? p?.Price)
     // JSON.parse already decodes \uXXXX — no extra decoding needed
     const rawCat = p?.category ?? p?.categoryName ?? null
-    const category = typeof rawCat === 'string' ? rawCat : null
+    const category = typeof rawCat === 'string' ? localizeCategory(rawCat) : null
 
     return Response.json({
       name: rawName.trim(),
