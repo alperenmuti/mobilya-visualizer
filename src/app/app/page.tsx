@@ -1,29 +1,26 @@
 'use client'
 import Link from 'next/link'
+import { Suspense } from 'react'
 import { useState, useEffect } from 'react'
-import { ArrowLeft, Layers, Replace, ArrowRight, Building2, Loader2, Wand2, Trash2 } from 'lucide-react'
+import { useSearchParams } from 'next/navigation'
+import { ArrowLeft, Layers, Replace, ArrowRight, Building2, Loader2, Wand2, Trash2, Sparkles } from 'lucide-react'
 import type { Tenant } from '@/lib/types'
 
-export default function AppSelectorPage() {
-  const [brand, setBrand] = useState<string | null>(null)
+function AppSelectorContent() {
+  const searchParams = useSearchParams()
+  const brand = searchParams.get('brand') ?? ''
+
   const [tenants, setTenants] = useState<Tenant[]>([])
   const [tenantsLoading, setTenantsLoading] = useState(false)
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    setBrand(params.get('brand') ?? '')
-  }, [])
-
-  useEffect(() => {
-    if (brand === null || brand !== '') return
+    if (brand !== '') return
     setTenantsLoading(true)
     fetch('/api/tenants')
       .then(r => r.json())
       .then(d => { setTenants(d.tenants ?? []); setTenantsLoading(false) })
       .catch(() => setTenantsLoading(false))
   }, [brand])
-
-  if (brand === null) return null
 
   // Brand selected → show mode selector
   if (brand) {
@@ -40,7 +37,7 @@ export default function AppSelectorPage() {
           <p className="text-sm mb-10 text-center" style={{ color: 'var(--muted-fg)' }}>
             Bir işlev seçin ve başlayın.
           </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-2xl">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-4xl">
             <ModeCard
               href={`/app/place?brand=${brand}`}
               icon={<Layers size={32} style={{ color: 'var(--accent)' }} />}
@@ -73,6 +70,14 @@ export default function AppSelectorPage() {
               description="Dolu odayı yükle — AI tüm mobilya ve eşyaları kaldırır, satışa hazır boş oda gösterir."
               steps={['Dolu oda fotoğrafı yükle', 'AI tüm eşyaları kaldırır', 'Temiz boş oda indir']}
             />
+            <ModeCard
+              href={`/app/mockup?brand=${brand}`}
+              icon={<Sparkles size={32} style={{ color: 'var(--accent)' }} />}
+              title="Mockup Oluştur"
+              subtitle="Yaşam stili görseli"
+              description="Ürün fotoğrafı yükle — AI 4 farklı oda ortamında yaşam stili mockup görseli oluştursun."
+              steps={['Ürün fotoğrafı yükle', 'Ürün adını gir', 'AI 4 sahne üretir', 'İndir & paylaş']}
+            />
           </div>
         </main>
       </div>
@@ -94,39 +99,12 @@ export default function AppSelectorPage() {
           <p className="text-sm mb-10 text-center" style={{ color: 'var(--muted-fg)' }}>
             Bir işlev seçin ve başlayın.
           </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-2xl">
-            <ModeCard
-              href="/app/place"
-              icon={<Layers size={32} style={{ color: 'var(--accent)' }} />}
-              title="Mobilya Yerleştir"
-              subtitle="Boş odaya"
-              description="Boş oda fotoğrafı yükle, mobilya seç, tıkladığın noktaya AI yerleştirsin."
-              steps={['Oda fotoğrafı yükle', 'Mobilya seç', 'Nereye koyacağına tıkla', 'AI görüntüsünü oluştur']}
-            />
-            <ModeCard
-              href="/app/replace"
-              icon={<Replace size={32} style={{ color: 'var(--accent)' }} />}
-              title="Mobilya Değiştir"
-              subtitle="Dolu odada"
-              description="Odandaki bir mobilyaya tıkla, listeden yenisini seç — sadece o mobilya değişir."
-              steps={['Oda fotoğrafı yükle', 'Değiştirmek istediğine tıkla', 'Yeni mobilyayı seç', 'AI değişikliği uygular']}
-            />
-            <ModeCard
-              href="/app/design"
-              icon={<Wand2 size={32} style={{ color: 'var(--accent)' }} />}
-              title="Baştan Dizayn Et"
-              subtitle="Stil seç"
-              description="Boş oda yükle, 6 farklı tarzdan birini seç — AI odayı baştan döşesin."
-              steps={['Boş oda fotoğrafı yükle', 'Dekorasyon stili seç', 'AI odayı tamamen döşer']}
-            />
-            <ModeCard
-              href="/app/empty"
-              icon={<Trash2 size={32} style={{ color: 'var(--accent)' }} />}
-              title="Odayı Boşalt"
-              subtitle="Eşyaları kaldır"
-              description="Dolu odayı yükle — AI tüm mobilya ve eşyaları kaldırır, satışa hazır boş oda gösterir."
-              steps={['Dolu oda fotoğrafı yükle', 'AI tüm eşyaları kaldırır', 'Temiz boş oda indir']}
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-4xl">
+            <ModeCard href="/app/place" icon={<Layers size={32} style={{ color: 'var(--accent)' }} />} title="Mobilya Yerleştir" subtitle="Boş odaya" description="Boş oda fotoğrafı yükle, mobilya seç, tıkladığın noktaya AI yerleştirsin." steps={['Oda fotoğrafı yükle', 'Mobilya seç', 'Nereye koyacağına tıkla', 'AI görüntüsünü oluştur']} />
+            <ModeCard href="/app/replace" icon={<Replace size={32} style={{ color: 'var(--accent)' }} />} title="Mobilya Değiştir" subtitle="Dolu odada" description="Odandaki bir mobilyaya tıkla, listeden yenisini seç — sadece o mobilya değişir." steps={['Oda fotoğrafı yükle', 'Değiştirmek istediğine tıkla', 'Yeni mobilyayı seç', 'AI değişikliği uygular']} />
+            <ModeCard href="/app/design" icon={<Wand2 size={32} style={{ color: 'var(--accent)' }} />} title="Baştan Dizayn Et" subtitle="Stil seç" description="Boş oda yükle, 6 farklı tarzdan birini seç — AI odayı baştan döşesin." steps={['Boş oda fotoğrafı yükle', 'Dekorasyon stili seç', 'AI odayı tamamen döşer']} />
+            <ModeCard href="/app/empty" icon={<Trash2 size={32} style={{ color: 'var(--accent)' }} />} title="Odayı Boşalt" subtitle="Eşyaları kaldır" description="Dolu odayı yükle — AI tüm mobilya ve eşyaları kaldırır, satışa hazır boş oda gösterir." steps={['Dolu oda fotoğrafı yükle', 'AI tüm eşyaları kaldırır', 'Temiz boş oda indir']} />
+            <ModeCard href="/app/mockup" icon={<Sparkles size={32} style={{ color: 'var(--accent)' }} />} title="Mockup Oluştur" subtitle="Yaşam stili görseli" description="Ürün fotoğrafı yükle — AI 4 farklı oda ortamında yaşam stili mockup görseli oluştursun." steps={['Ürün fotoğrafı yükle', 'Ürün adını gir', 'AI 4 sahne üretir', 'İndir & paylaş']} />
           </div>
         </main>
       </div>
@@ -154,7 +132,7 @@ export default function AppSelectorPage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 w-full max-w-3xl">
             {tenants.map(tenant => (
-              <Link
+              <a
                 key={tenant.id}
                 href={`/app?brand=${tenant.slug}`}
                 className="group flex items-center gap-4 p-5 rounded-2xl transition-all hover:-translate-y-0.5 hover:shadow-lg"
@@ -167,12 +145,20 @@ export default function AppSelectorPage() {
                   <p className="font-semibold text-sm truncate">{tenant.name}</p>
                 </div>
                 <ArrowRight size={14} className="flex-shrink-0 group-hover:translate-x-0.5 transition-transform" style={{ color: 'var(--muted-fg)' }} />
-              </Link>
+              </a>
             ))}
           </div>
         )}
       </main>
     </div>
+  )
+}
+
+export default function AppSelectorPage() {
+  return (
+    <Suspense fallback={null}>
+      <AppSelectorContent />
+    </Suspense>
   )
 }
 
@@ -197,10 +183,7 @@ function ModeCard({ href, icon, title, subtitle, description, steps }: {
       <ol className="space-y-1.5 mb-5">
         {steps.map((s, i) => (
           <li key={i} className="flex items-center gap-2 text-sm" style={{ color: 'var(--muted-fg)' }}>
-            <span
-              className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
-              style={{ background: '#F5EFE6', color: 'var(--accent-dark)' }}
-            >
+            <span className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" style={{ background: '#F5EFE6', color: 'var(--accent-dark)' }}>
               {i + 1}
             </span>
             {s}
