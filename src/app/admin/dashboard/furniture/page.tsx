@@ -73,6 +73,7 @@ export default function FurnitureCatalogPage() {
         product_url: data.product_url ?? scrapeUrl,
         price: data.price ?? '',
         description: data.description ?? '',
+        category: data.category ?? p.category,
       }))
     } catch (err) {
       setScrapeError((err as Error).message)
