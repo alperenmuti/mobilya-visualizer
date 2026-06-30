@@ -104,6 +104,7 @@ export async function POST(req: NextRequest) {
       price,
       category,
       product_url: url,
+      _debug: { htmlSize: html.length, hasH1: !!h1, hasOgImage: !!rawImage, hasRef: html.includes('"reference":"product detail"') },
     })
   } catch (err) {
     return Response.json({ error: 'Ürün bilgileri alınamadı: ' + (err as Error).message }, { status: 500 })
