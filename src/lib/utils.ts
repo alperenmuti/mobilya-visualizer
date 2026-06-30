@@ -169,6 +169,86 @@ export function compositeFurnitureOnImage(
   })
 }
 
+/**
+ * Flood-fill BFS from image borders to make near-white background transparent.
+ * Returns a PNG data URL with transparency. Works for standard product photos.
+ */
+export function removeWhiteBackground(dataUrl: string, threshold = 232): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      canvas.width = img.naturalWidth
+      canvas.height = img.naturalHeight
+      const ctx = canvas.getContext('2d')
+      if (!ctx) { reject(new Error('canvas yok')); return }
+      ctx.drawImage(img, 0, 0)
+
+      const w = canvas.width, h = canvas.height
+      const imageData = ctx.getImageData(0, 0, w, h)
+      const d = imageData.data
+
+      const isWhitish = (i: number) => d[i] > threshold && d[i + 1] > threshold && d[i + 2] > threshold
+
+      const visited = new Uint8Array(w * h)
+      const queue: number[] = []
+
+      // Seed all 4 border edges
+      for (let x = 0; x < w; x++) { queue.push(x); visited[x] = 1 }
+      for (let x = 0; x < w; x++) { const i = (h - 1) * w + x; if (!visited[i]) { visited[i] = 1; queue.push(i) } }
+      for (let y = 1; y < h - 1; y++) { queue.push(y * w); visited[y * w] = 1 }
+      for (let y = 1; y < h - 1; y++) { const i = y * w + w - 1; if (!visited[i]) { visited[i] = 1; queue.push(i) } }
+
+      let qi = 0
+      while (qi < queue.length) {
+        const idx = queue[qi++]
+        const pi = idx * 4
+        if (!isWhitish(pi)) continue
+        d[pi + 3] = 0 // transparent
+        const x = idx % w, y = (idx / w) | 0
+        if (x > 0     && !visited[idx - 1]) { visited[idx - 1] = 1; queue.push(idx - 1) }
+        if (x < w - 1 && !visited[idx + 1]) { visited[idx + 1] = 1; queue.push(idx + 1) }
+        if (y > 0     && !visited[idx - w]) { visited[idx - w] = 1; queue.push(idx - w) }
+        if (y < h - 1 && !visited[idx + w]) { visited[idx + w] = 1; queue.push(idx + w) }
+      }
+
+      ctx.putImageData(imageData, 0, 0)
+      resolve(canvas.toDataURL('image/png'))
+    }
+    img.onerror = () => reject(new Error('görüntü yüklenemedi'))
+    img.src = dataUrl
+  })
+}
+
+/**
+ * Fetches a furniture URL via the proxy endpoint (avoids CORS), removes the
+ * white background, then composites onto the room at the clicked point.
+ * Returns the composited JPEG data URL, or null if anything fails (caller falls
+ * back to the crosshair-marker approach).
+ */
+export async function compositeOnRoom(
+  roomDataUrl: string,
+  furnitureUrl: string,
+  nx: number,
+  ny: number,
+): Promise<string | null> {
+  try {
+    // Fetch via proxy so we avoid CORS taint on canvas
+    const proxyRes = await fetch(`/api/proxy-image?url=${encodeURIComponent(furnitureUrl)}`)
+    if (!proxyRes.ok) return null
+    const { dataUrl: furnitureDataUrl } = await proxyRes.json() as { dataUrl?: string }
+    if (!furnitureDataUrl) return null
+
+    // Remove white background → transparent PNG
+    const cutoutDataUrl = await removeWhiteBackground(furnitureDataUrl)
+
+    // Composite onto room using the existing depth-aware function
+    return await compositeFurnitureOnImage(roomDataUrl, cutoutDataUrl, nx, ny, 0.32)
+  } catch {
+    return null
+  }
+}
+
 export function dataURLtoBlob(dataURL: string): Blob {
   const arr = dataURL.split(',')
   const mime = arr[0].match(/:(.*?);/)![1]

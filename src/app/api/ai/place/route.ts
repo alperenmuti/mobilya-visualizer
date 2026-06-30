@@ -10,7 +10,7 @@ export const maxDuration = 60
 
 export async function POST(req: NextRequest) {
   try {
-    const { imageDataUrl, furnitureName, furnitureImageUrl, clickX, clickY, markerDrawn, diag, roomType } = await req.json()
+    const { imageDataUrl, furnitureName, furnitureImageUrl, clickX, clickY, markerDrawn, preComposited, diag, roomType } = await req.json()
 
     // Safe diagnostic: reports only whether keys are configured (never values).
     if (diag) {
@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
     //    res and drifts; user prefers Gemini). ──────────────────────────────
     if (process.env.GEMINI_KEY) {
       try {
-        const resultUrl = await geminiPlace(imageDataUrl, furnitureName, furnitureImageUrl, placementHint, markerDrawn === true, roomTypeToEn(roomType ?? ''))
+        const resultUrl = await geminiPlace(imageDataUrl, furnitureName, furnitureImageUrl, placementHint, markerDrawn === true, roomTypeToEn(roomType ?? ''), preComposited === true)
         return Response.json({ resultUrl, engine: 'gemini' })
       } catch (e) {
         console.error('Gemini place error:', (e as Error).message)
@@ -76,49 +76,60 @@ async function geminiPlace(
   placementHint?: string | null,
   markerDrawn?: boolean,
   roomTypeEn?: string,
+  preComposited?: boolean,
 ): Promise<string> {
   const { mimeType, data } = dataUrlToInlineData(imageDataUrl)
 
-  // When the user marked a spot with the crosshair, lead with ONLY the visual
-  // marker reference. Mixing verbose text coordinates alongside a visual anchor
-  // causes Gemini to average or ignore the dot — keep it simple and visual-first.
-  let placementSection: string
-  if (markerDrawn) {
-    // Extract only the depth/scale cue from the hint (background/foreground) so
-    // we don't add conflicting left/right/centre text that overrides the dot.
-    const scaleNote =
-      placementHint?.includes('BACKGROUND') ? 'It is deep in the background — render it noticeably smaller and higher in the frame.' :
-      placementHint?.includes('FOREGROUND') ? 'It is close to the camera — render it larger.' :
-      'Render at natural medium scale for mid-distance depth.'
-
-    placementSection = `## WHERE TO PLACE THE FURNITURE (CRITICAL — follow exactly)
-An orange crosshair marker is drawn on the floor of the room photo.
-You MUST place the "${furnitureName}" so its base (floor-contact point) is centred on that crosshair.
-Do NOT move it elsewhere. Do NOT pick a "nicer" or "more natural" spot. The crosshair IS the target.
-The furniture must completely cover and hide the crosshair under its base.
-${scaleNote}`
-  } else if (placementHint) {
-    placementSection = `## WHERE TO PLACE THE FURNITURE\n${placementHint}`
-  } else {
-    placementSection = `## WHERE TO PLACE THE FURNITURE\nPlace the "${furnitureName}" standing on the floor in a natural empty spot.`
-  }
-
   const roomContext = roomTypeEn
-    ? `Room type: ${roomTypeEn} — place the furniture appropriately for this room.`
+    ? `Room type: ${roomTypeEn}.`
     : ''
 
-  const prompt = `${placementSection}
+  let prompt: string
+
+  if (preComposited) {
+    // The furniture has already been composited at the correct position by the
+    // frontend canvas. Gemini's only job is post-processing: fix perspective,
+    // remove white edges/halo, add shadow, match lighting. Do NOT move it.
+    prompt = `The image shows a room with a "${furnitureName}" that has already been placed at the correct position.
+${roomContext}
+Your job is ONLY post-processing — do NOT move the furniture:
+1. Fix the furniture's perspective so it aligns with the room's vanishing lines and floor angle
+2. Remove any remaining white background halo or sharp cut edges around the furniture
+3. Adjust the furniture's size/scale to look realistic for its depth in the room
+4. Add a soft contact shadow matching the room's lighting direction
+5. Match the furniture's colour temperature and exposure to the room's ambient light
+6. Keep the rest of the room 100% unchanged — only fix the composited furniture
+
+Return ONLY the edited image — no text.`
+  } else {
+    // Fallback: marker-guided or free placement
+    let placementSection: string
+    if (markerDrawn) {
+      const scaleNote =
+        placementHint?.includes('BACKGROUND') ? 'It is deep in the background — render it noticeably smaller.' :
+        placementHint?.includes('FOREGROUND') ? 'It is close to the camera — render it larger.' :
+        'Render at natural medium scale.'
+
+      placementSection = `## PLACEMENT (CRITICAL)
+An orange crosshair is drawn on the floor. Place the "${furnitureName}" so its base is centred on that crosshair. Do NOT pick a different spot.
+${scaleNote}`
+    } else if (placementHint) {
+      placementSection = `## PLACEMENT\n${placementHint}`
+    } else {
+      placementSection = `## PLACEMENT\nPlace the "${furnitureName}" in a natural empty spot on the floor.`
+    }
+
+    prompt = `${placementSection}
 
 ## TASK
 Add a single "${furnitureName}" into the room photo. Return ONLY the edited image — no text.
-${roomContext ? roomContext + '\n' : ''}
-## PHOTO EDIT RULES (keep the room pixel-perfect)
-- This is a LOCAL edit, NOT a re-render. Output = same photograph + one furniture piece added.
-- Camera: same angle, viewpoint, zoom, framing, crop, aspect ratio — do NOT change.
-- Room: every wall, floor, window, door, colour, existing item stays exactly as-is — do NOT touch.
-- Only allowed change: add the "${furnitureName}" at the specified position.
-- Render it photorealistically: aligned to the room's perspective and vanishing lines, all legs flat on the floor (never floating), correct real-world scale, soft contact shadow, lighting matches the room.
-- Add nothing else — no extra items, decor, people or text.`
+${roomContext}
+## RULES
+- Same photograph + one furniture piece added — do NOT re-render or restyle.
+- Camera, room, walls, floor, existing items: unchanged.
+- Render the furniture with correct perspective, all legs on the floor, soft shadow, matched lighting.
+- Nothing else added.`
+  }
 
   const parts: Part[] = [
     { inlineData: { mimeType, data } },

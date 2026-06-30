@@ -5,7 +5,7 @@ import { ArrowLeft, Plus, Download, Undo2, RotateCcw, AlertCircle } from 'lucide
 import RoomCanvas from '@/components/RoomCanvas'
 import FurnitureList from '@/components/FurnitureList'
 import RoomTypeSelector from '@/components/RoomTypeSelector'
-import { drawMarkerOnImage } from '@/lib/utils'
+import { drawMarkerOnImage, compositeOnRoom } from '@/lib/utils'
 import type { FurnitureItem, ClickPoint } from '@/lib/types'
 
 type Job =
@@ -54,20 +54,36 @@ export default function PlaceFurniturePage() {
     if (!current || !clickPoint || !selectedFurniture) return
     setJob({ status: 'processing' })
 
-    // Draw an anchor dot at the click so Gemini knows the target spot.
-    let markedImage = current
+    // Strategy 1 (preferred): composite furniture onto room ourselves at the
+    // exact click position, then ask Gemini to fix realism — Gemini never needs
+    // to decide WHERE to place it, only HOW to blend it.
+    // Strategy 2 (fallback): orange crosshair marker approach.
+    let imageToSend = current
+    let preComposited = false
     let markerDrawn = false
-    try {
-      markedImage = await drawMarkerOnImage(current, clickPoint.x, clickPoint.y)
-      markerDrawn = true
-    } catch {}
+
+    if (selectedFurniture.image_url) {
+      const composited = await compositeOnRoom(current, selectedFurniture.image_url, clickPoint.x, clickPoint.y)
+      if (composited) {
+        imageToSend = composited
+        preComposited = true
+      }
+    }
+
+    if (!preComposited) {
+      try {
+        imageToSend = await drawMarkerOnImage(current, clickPoint.x, clickPoint.y)
+        markerDrawn = true
+      } catch {}
+    }
 
     try {
       const res = await fetch('/api/ai/place', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          imageDataUrl: markedImage,
+          imageDataUrl: imageToSend,
+          preComposited,
           markerDrawn,
           clickX: clickPoint.x,
           clickY: clickPoint.y,
