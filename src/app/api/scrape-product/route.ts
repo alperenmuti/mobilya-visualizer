@@ -64,17 +64,18 @@ async function fetchHtml(url: string): Promise<string> {
   // Use ScrapingAnt when available — bypasses Cloudflare from cloud IPs
   const antKey = process.env.SCRAPINGANT_KEY
   if (antKey) {
-    const antUrl = `https://api.scrapingant.com/v2/general?url=${encodeURIComponent(url)}&browser=false`
+    // browser=true uses headless Chrome — bypasses Cloudflare JS challenges
+    const antUrl = `https://api.scrapingant.com/v2/general?url=${encodeURIComponent(url)}&browser=true`
     const res = await fetch(antUrl, {
       headers: { 'x-api-key': antKey },
-      signal: AbortSignal.timeout(20000),
+      signal: AbortSignal.timeout(30000),
     })
     const text = await res.text()
-    if (!res.ok) throw new Error(`ScrapingAnt ${res.status}: ${text.slice(0, 100)}`)
+    if (!res.ok) throw new Error(`ScrapingAnt ${res.status}: ${text.slice(0, 200)}`)
     try {
-      return JSON.parse(text).content ?? text
+      const json = JSON.parse(text)
+      return json.content ?? json.html ?? text
     } catch {
-      // API returned HTML directly
       return text
     }
   }
@@ -131,7 +132,7 @@ export async function POST(req: NextRequest) {
       price,
       category,
       product_url: url,
-      _debug: { htmlSize: html.length, hasH1: !!h1, hasOgImage: !!rawImage, hasRef: html.includes('"reference":"product detail"') },
+      _debug: { htmlSize: html.length, hasH1: !!h1, hasOgImage: !!rawImage, hasRef: html.includes('"reference":"product detail"'), htmlPreview: html.slice(0, 120) },
     })
   } catch (err) {
     return Response.json({ error: 'Ürün bilgileri alınamadı: ' + (err as Error).message }, { status: 500 })
