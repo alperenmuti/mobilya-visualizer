@@ -1,23 +1,30 @@
 import { NextRequest } from 'next/server'
 
+// Microlink renders JS and extracts metadata universally (100 req/day free, no key needed)
+async function scrapeViaMicrolink(url: string) {
+  const res = await fetch(`https://api.microlink.io/?url=${encodeURIComponent(url)}&screenshot=false`, {
+    signal: AbortSignal.timeout(15000),
+  })
+  if (!res.ok) throw new Error(`Microlink HTTP ${res.status}`)
+  const json = await res.json()
+  if (json.status !== 'success') throw new Error(json.message ?? 'Microlink hata')
+  const d = json.data
+  return {
+    name: d.title ?? null,
+    image_url: d.image?.url ?? null,
+    description: d.description ?? null,
+    price: null as string | null,
+    product_url: url,
+  }
+}
+
+// Fallback: plain HTML scraper for sites that don't need JS
 function getMeta(html: string, prop: string): string | null {
   const patterns = [
     new RegExp(`<meta[^>]*property=["']og:${prop}["'][^>]*content=["']([^"']+)["']`, 'i'),
     new RegExp(`<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:${prop}["']`, 'i'),
-    new RegExp(`<meta[^>]*name=["']og:${prop}["'][^>]*content=["']([^"']+)["']`, 'i'),
-    new RegExp(`<meta[^>]*content=["']([^"']+)["'][^>]*name=["']og:${prop}["']`, 'i'),
-  ]
-  for (const re of patterns) {
-    const m = html.match(re)
-    if (m?.[1]) return m[1]
-  }
-  return null
-}
-
-function getMeta2(html: string, name: string): string | null {
-  const patterns = [
-    new RegExp(`<meta[^>]*name=["']${name}["'][^>]*content=["']([^"']+)["']`, 'i'),
-    new RegExp(`<meta[^>]*content=["']([^"']+)["'][^>]*name=["']${name}["']`, 'i'),
+    new RegExp(`<meta[^>]*name=["']${prop}["'][^>]*content=["']([^"']+)["']`, 'i'),
+    new RegExp(`<meta[^>]*content=["']([^"']+)["'][^>]*name=["']${prop}["']`, 'i'),
   ]
   for (const re of patterns) {
     const m = html.match(re)
@@ -28,39 +35,50 @@ function getMeta2(html: string, name: string): string | null {
 
 function toAbsolute(url: string | null, base: string): string | null {
   if (!url) return null
-  try {
-    return new URL(url, base).href
-  } catch {
-    return url.startsWith('http') ? url : null
-  }
+  try { return new URL(url, base).href } catch { return url.startsWith('http') ? url : null }
 }
 
 function extractImageFromJsonLd(html: string): string | null {
-  const scripts = html.matchAll(/<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)
-  for (const match of scripts) {
+  for (const match of html.matchAll(/<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)) {
     try {
-      const json = JSON.parse(match[1])
-      const objs = Array.isArray(json) ? json : [json]
-      for (const obj of objs) {
-        const img = obj.image ?? obj.image?.[0]
+      const objs: unknown[] = [].concat(JSON.parse(match[1]))
+      for (const obj of objs as Record<string, unknown>[]) {
+        const img = obj.image
         if (typeof img === 'string' && img.startsWith('http')) return img
-        if (Array.isArray(img) && img[0]?.startsWith?.('http')) return img[0]
-        if (typeof img === 'object' && img?.url?.startsWith?.('http')) return img.url
+        if (Array.isArray(img) && typeof img[0] === 'string') return img[0]
+        if (img && typeof img === 'object' && typeof (img as Record<string, unknown>).url === 'string') return (img as Record<string, unknown>).url as string
       }
     } catch { /* skip */ }
   }
   return null
 }
 
-function extractFirstProductImage(html: string, base: string): string | null {
-  // Look for prominent product images (large src, no icon/logo patterns)
-  const imgPattern = /<img[^>]*src=["']([^"']+)["'][^>]*(class|id)=["'][^"']*(product|hero|main|featured|detail|zoom|gallery)[^"']*["'][^>]*>/gi
-  const m = html.match(imgPattern)
-  if (m) {
-    const srcMatch = m[0].match(/src=["']([^"']+)["']/)
-    if (srcMatch?.[1]) return toAbsolute(srcMatch[1], base)
+async function scrapeViaHtml(url: string) {
+  const res = await fetch(url, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Accept': 'text/html,application/xhtml+xml;q=0.9,*/*;q=0.8',
+      'Accept-Language': 'tr-TR,tr;q=0.9,en;q=0.8',
+    },
+    signal: AbortSignal.timeout(10000),
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  const html = await res.text()
+
+  const titleTag = html.match(/<title[^>]*>([^<]+)<\/title>/i)?.[1]
+  const priceMatch = html.match(/₺\s?[\d.,]+|[\d.,]+\s?₺|\$[\d.,]+|[\d.,]+\s?\$/)
+
+  const rawImage = getMeta(html, 'og:image')
+    ?? getMeta(html, 'twitter:image')
+    ?? extractImageFromJsonLd(html)
+
+  return {
+    name: (getMeta(html, 'og:title') ?? getMeta(html, 'twitter:title') ?? titleTag ?? 'Ürün').trim(),
+    image_url: toAbsolute(rawImage, url),
+    description: getMeta(html, 'og:description') ?? getMeta(html, 'description') ?? null,
+    price: priceMatch?.[0]?.trim() ?? null,
+    product_url: url,
   }
-  return null
 }
 
 export async function POST(req: NextRequest) {
@@ -68,35 +86,22 @@ export async function POST(req: NextRequest) {
     const { url } = await req.json()
     if (!url) return Response.json({ error: 'URL gerekli' }, { status: 400 })
 
-    const res = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'tr-TR,tr;q=0.9,en;q=0.8',
-      },
-      signal: AbortSignal.timeout(10000),
-    })
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    const html = await res.text()
-
-    const titleTag = html.match(/<title[^>]*>([^<]+)<\/title>/i)?.[1]
-      ?? html.match(/<h1[^>]*>([^<]+)<\/h1>/i)?.[1]
-
-    const priceMatch = html.match(/₺\s?[\d.,]+|[\d.,]+\s?₺|\$[\d.,]+|[\d.,]+\s?\$/)
-
-    const name = getMeta(html, 'title') ?? getMeta2(html, 'twitter:title') ?? titleTag ?? 'Ürün'
-
-    const rawImage = getMeta(html, 'image')
-      ?? getMeta2(html, 'twitter:image')
-      ?? extractImageFromJsonLd(html)
-      ?? extractFirstProductImage(html, url)
-
-    const image_url = toAbsolute(rawImage, url)
-
-    const description = getMeta(html, 'description') ?? getMeta2(html, 'description') ?? null
-    const price = priceMatch?.[0]?.trim() ?? null
-
-    return Response.json({ name: name.trim(), image_url, description, price, product_url: url })
+    // Try Microlink first (handles JS-rendered sites)
+    try {
+      const result = await scrapeViaMicrolink(url)
+      if (result.image_url) return Response.json(result)
+      // Microlink succeeded but no image — fall through to HTML scraper for price etc.
+      const html = await scrapeViaHtml(url).catch(() => null)
+      return Response.json({
+        ...result,
+        price: html?.price ?? null,
+        image_url: result.image_url ?? html?.image_url ?? null,
+      })
+    } catch {
+      // Microlink failed — fall back to direct HTML fetch
+      const result = await scrapeViaHtml(url)
+      return Response.json(result)
+    }
   } catch (err) {
     return Response.json({ error: 'Ürün bilgileri alınamadı: ' + (err as Error).message }, { status: 500 })
   }
