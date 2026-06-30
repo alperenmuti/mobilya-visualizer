@@ -1,109 +1,63 @@
 import { NextRequest } from 'next/server'
-import { GoogleGenerativeAI } from '@google/generative-ai'
 
-interface ProductData {
-  name: string | null
-  price: string | null
-  image_url: string | null
-  category: string | null
-  description: string | null
-  product_url: string
+function getOgTag(html: string, prop: string): string | null {
+  // Handles both quote types and both attribute orderings
+  const re1 = new RegExp(`<meta[^>]+property=["']og:${prop}["'][^>]+content=["']([^"']+)["']`, 'i')
+  const re2 = new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:${prop}["']`, 'i')
+  return html.match(re1)?.[1] ?? html.match(re2)?.[1] ?? null
 }
 
-async function scrapeWithJinaAndGemini(url: string): Promise<ProductData> {
-  // Step 1: Jina AI Reader renders JS and returns clean markdown + image list
-  const jinaRes = await fetch(`https://r.jina.ai/${url}`, {
-    headers: {
-      'Accept': 'application/json',
-      'X-No-Cache': 'true',
-      'X-With-Images-Summary': 'true',
-    },
-    signal: AbortSignal.timeout(25000),
-  })
-  if (!jinaRes.ok) throw new Error(`Jina HTTP ${jinaRes.status}`)
-  const jinaData = await jinaRes.json()
-  const content: string = jinaData.data?.content ?? ''
-  const images: { src: string; alt: string }[] = jinaData.data?.images ?? []
+function getMetaName(html: string, name: string): string | null {
+  const re1 = new RegExp(`<meta[^>]+name=["']${name}["'][^>]+content=["']([^"']+)["']`, 'i')
+  const re2 = new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+name=["']${name}["']`, 'i')
+  return html.match(re1)?.[1] ?? html.match(re2)?.[1] ?? null
+}
 
-  // Step 2: Gemini extracts structured product data
-  const genAI = new GoogleGenerativeAI(process.env.GEMINI_KEY!)
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
+function toAbsolute(url: string | null, base: string): string | null {
+  if (!url) return null
+  try { return new URL(url, base).href } catch { return url.startsWith('http') ? url : null }
+}
 
-  const imageList = images
-    .filter(i => i.src?.startsWith('http') && !i.src.includes('logo') && !i.src.includes('icon') && !i.src.includes('banner'))
-    .slice(0, 15)
-    .map((img, i) => `${i + 1}. alt="${img.alt ?? ''}" → ${img.src}`)
-    .join('\n')
-
-  const prompt = `Bu bir Türk mobilya ürün sayfasıdır. Ürün bilgilerini çıkar.
-
-SAYFA İÇERİĞİ:
-${content.substring(0, 5000)}
-
-MEVCUT GÖRSELLER (numaralı liste):
-${imageList || '(görsel bulunamadı)'}
-
-SADECE geçerli JSON döndür, başka hiçbir şey yazma:
-{
-  "name": "ürün adı",
-  "price": "fiyat ₺ simgesiyle (örn: 12.499 ₺) — bulunamazsa null",
-  "image_url": "Yukarıdaki MEVCUT GÖRSELLER listesinden ana ürün görselinin tam URL'si — logo/ikon/banner olmayan, ürünü gösteren ilk görsel — bulunamazsa null",
-  "category": "şunlardan biri: Koltuk, Kanepe, Berjer, Yatak, Karyola, Masa, Yemek Masası, Sandalye, Dolap, Gardırop, Raf, Kitaplık, Aydınlatma, Halı, TV Ünitesi, Çalışma Masası, Diğer",
-  "description": "kısa ürün açıklaması veya null"
-}`
-
-  const result = await model.generateContent(prompt)
-  const text = result.response.text().trim()
-  const jsonMatch = text.match(/\{[\s\S]*\}/)
-  if (!jsonMatch) throw new Error('Gemini JSON döndürmedi')
-  const extracted = JSON.parse(jsonMatch[0])
-
-  return {
-    name: extracted.name ?? null,
-    price: extracted.price ?? null,
-    image_url: extracted.image_url ?? null,
-    category: extracted.category ?? null,
-    description: extracted.description ?? null,
-    product_url: url,
+// Extracts product JSON object from inline JS (e.g. dataLayer / tracking scripts)
+function extractProductJson(html: string): Record<string, unknown> | null {
+  // Try various "reference" values used by Turkish e-commerce platforms
+  const refPatterns = ['"product detail"', '"product"', '"Product"', '"urun"']
+  for (const ref of refPatterns) {
+    const refIdx = html.indexOf(`"reference":${ref}`)
+    if (refIdx >= 0) {
+      const start = html.lastIndexOf('{', refIdx)
+      const end = html.indexOf('}', refIdx)
+      if (start >= 0 && end >= 0) {
+        try { return JSON.parse(html.slice(start, end + 1)) } catch { /* skip */ }
+      }
+    }
   }
-}
 
-// Fallback: plain HTML scraper
-function getMeta(html: string, prop: string): string | null {
-  const patterns = [
-    new RegExp(`<meta[^>]*property=["']og:${prop}["'][^>]*content=["']([^"']+)["']`, 'i'),
-    new RegExp(`<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:${prop}["']`, 'i'),
-    new RegExp(`<meta[^>]*name=["']${prop}["'][^>]*content=["']([^"']+)["']`, 'i'),
-    new RegExp(`<meta[^>]*content=["']([^"']+)["'][^>]*name=["']${prop}["']`, 'i'),
-  ]
-  for (const re of patterns) {
-    const m = html.match(re)
-    if (m?.[1]) return m[1]
+  // Fallback: JSON-LD Product schema
+  for (const m of html.matchAll(/<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)) {
+    try {
+      const json = JSON.parse(m[1])
+      const items = Array.isArray(json) ? json : [json]
+      for (const item of items) {
+        if (item['@type'] === 'Product') return item
+      }
+    } catch { /* skip */ }
   }
   return null
 }
 
-async function scrapeViaHtml(url: string): Promise<ProductData> {
-  const res = await fetch(url, {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      'Accept-Language': 'tr-TR,tr;q=0.9',
-    },
-    signal: AbortSignal.timeout(10000),
-  })
-  if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  const html = await res.text()
-  const priceMatch = html.match(/₺\s?[\d.,]+|[\d.,]+\s?₺/)
-  const rawImage = getMeta(html, 'og:image') ?? getMeta(html, 'twitter:image')
-  const image_url = rawImage ? (() => { try { return new URL(rawImage, url).href } catch { return rawImage } })() : null
-  return {
-    name: (getMeta(html, 'og:title') ?? html.match(/<title[^>]*>([^<]+)<\/title>/i)?.[1] ?? 'Ürün').trim(),
-    price: priceMatch?.[0]?.trim() ?? null,
-    image_url,
-    category: null,
-    description: getMeta(html, 'og:description') ?? null,
-    product_url: url,
+function formatPrice(raw: unknown): string | null {
+  if (!raw) return null
+  if (typeof raw === 'number') {
+    const n = Math.round(raw)
+    return n.toLocaleString('tr-TR') + ' ₺'
   }
+  if (typeof raw === 'string' && raw.trim()) return raw.trim()
+  return null
+}
+
+function decodeUnicode(s: string): string {
+  return s.replace(/\\u([\da-fA-F]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16)))
 }
 
 export async function POST(req: NextRequest) {
@@ -111,18 +65,46 @@ export async function POST(req: NextRequest) {
     const { url } = await req.json()
     if (!url) return Response.json({ error: 'URL gerekli' }, { status: 400 })
 
-    if (process.env.GEMINI_KEY) {
-      try {
-        const result = await scrapeWithJinaAndGemini(url)
-        return Response.json(result)
-      } catch (err) {
-        console.warn('Jina+Gemini scrape failed, falling back to HTML:', err)
-      }
-    }
+    const res = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'tr-TR,tr;q=0.9,en;q=0.8',
+      },
+      signal: AbortSignal.timeout(12000),
+    })
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const html = await res.text()
 
-    // Fallback
-    const result = await scrapeViaHtml(url)
-    return Response.json(result)
+    // --- Name ---
+    const h1 = html.match(/<h1[^>]*>\s*([^<]+?)\s*<\/h1>/i)?.[1]
+    const titleTag = html.match(/<title[^>]*>([^<]+)<\/title>/i)?.[1]
+      ?.replace(/\s*\|\s*[^|]+$/, '').trim() // strip "| Brand" suffix
+    const rawName = getOgTag(html, 'title') ?? h1 ?? titleTag ?? 'Ürün'
+
+    // --- Image ---
+    const rawImage = getOgTag(html, 'image') ?? getMetaName(html, 'twitter:image')
+    const image_url = toAbsolute(rawImage, url)
+
+    // --- Description ---
+    const description = getOgTag(html, 'description') ?? getMetaName(html, 'description') ?? null
+
+    // --- Product JSON (price + category) ---
+    const productObj = extractProductJson(html)
+    const p = productObj as Record<string, unknown> | null
+    const price = formatPrice(p?.price ?? (p?.offers as Record<string,unknown>)?.price ?? p?.Price)
+    // JSON.parse already decodes \uXXXX — no extra decoding needed
+    const rawCat = p?.category ?? p?.categoryName ?? null
+    const category = typeof rawCat === 'string' ? rawCat : null
+
+    return Response.json({
+      name: rawName.trim(),
+      image_url,
+      description: description ?? null,
+      price,
+      category,
+      product_url: url,
+    })
   } catch (err) {
     return Response.json({ error: 'Ürün bilgileri alınamadı: ' + (err as Error).message }, { status: 500 })
   }
