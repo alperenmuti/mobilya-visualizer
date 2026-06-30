@@ -90,6 +90,7 @@ export default function PlaceFurniturePage() {
           furnitureName: selectedFurniture.name,
           furnitureImageUrl: selectedFurniture.image_url,
           roomType,
+          brand: brand ?? undefined,
         }),
       })
       const data = await res.json()

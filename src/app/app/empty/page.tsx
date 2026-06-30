@@ -35,7 +35,7 @@ export default function EmptyRoomPage() {
       const res = await fetch('/api/ai/empty', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageDataUrl, roomType }),
+        body: JSON.stringify({ imageDataUrl, roomType, brand: brand ?? undefined }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Bilinmeyen hata')

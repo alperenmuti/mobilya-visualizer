@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { getGeminiModel, dataUrlToInlineData, extractImageFromResponse } from '@/lib/gemini'
+import { deductCredit } from '@/lib/credits'
 import type { Part } from '@google/generative-ai'
 
 export const maxDuration = 60
@@ -71,9 +72,16 @@ Make it look like a premium furniture catalogue shot.`
 
 export async function POST(req: NextRequest) {
   try {
-    const { productDataUrl, productName } = await req.json()
+    const { productDataUrl, productName, brand } = await req.json()
     if (!productDataUrl || !productName) {
       return Response.json({ error: 'Ürün fotoğrafı ve adı gerekli' }, { status: 400 })
+    }
+
+    if (brand) {
+      const credit = await deductCredit(brand)
+      if (!credit.ok) {
+        return Response.json({ error: 'Kontörünüz bitti. Lütfen yönetici ile iletişime geçin.', credits: 0 }, { status: 402 })
+      }
     }
 
     const results = await Promise.allSettled(

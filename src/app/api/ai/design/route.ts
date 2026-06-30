@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import type { Part } from '@google/generative-ai'
 import { getGeminiModel, dataUrlToInlineData, extractImageFromResponse } from '@/lib/gemini'
 import { roomTypeToEn } from '@/lib/roomTypes'
+import { deductCredit } from '@/lib/credits'
 
 const STYLE_PROMPTS: Record<string, string> = {
   modern: 'modern contemporary style: low-profile furniture with clean geometric lines, neutral palette (white, light gray, beige, black accents), statement lighting, minimal clutter, large abstract art on walls',
@@ -14,10 +15,17 @@ const STYLE_PROMPTS: Record<string, string> = {
 
 export async function POST(req: NextRequest) {
   try {
-    const { imageDataUrl, style, roomType } = await req.json()
+    const { imageDataUrl, style, roomType, brand } = await req.json()
 
     if (!imageDataUrl || !style) {
       return Response.json({ error: 'Eksik parametreler' }, { status: 400 })
+    }
+
+    if (brand) {
+      const credit = await deductCredit(brand)
+      if (!credit.ok) {
+        return Response.json({ error: 'Kontörünüz bitti. Lütfen yönetici ile iletişime geçin.', credits: 0 }, { status: 402 })
+      }
     }
 
     if (!process.env.GEMINI_KEY) {

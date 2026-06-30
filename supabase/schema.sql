@@ -45,3 +45,39 @@ do $$ begin
     execute 'create policy "Service role write" on furniture_items for all using (auth.role() = ''service_role'')';
   end if;
 end $$;
+
+-- ── Credits (kontör) ─────────────────────────────────────────────────
+alter table tenants add column if not exists credits integer not null default 0;
+
+-- Seed: 500 credits for all existing tenants (run once after migration)
+-- UPDATE tenants SET credits = 500;
+-- or for a specific tenant:
+-- UPDATE tenants SET credits = 500 WHERE slug = 'your-slug';
+
+-- Atomic credit deduction: returns {ok, remaining, reason}
+-- Uses FOR UPDATE row lock so concurrent requests can't double-spend.
+create or replace function deduct_tenant_credit(p_slug text)
+returns jsonb
+language plpgsql
+security definer
+as $$
+declare
+  v_id      uuid;
+  v_credits integer;
+begin
+  select id, credits into v_id, v_credits
+  from tenants where slug = p_slug
+  for update;
+
+  if not found then
+    return jsonb_build_object('ok', false, 'reason', 'tenant_not_found', 'remaining', 0);
+  end if;
+
+  if v_credits <= 0 then
+    return jsonb_build_object('ok', false, 'reason', 'insufficient_credits', 'remaining', 0);
+  end if;
+
+  update tenants set credits = credits - 1 where id = v_id;
+  return jsonb_build_object('ok', true, 'remaining', v_credits - 1);
+end;
+$$;

@@ -45,7 +45,7 @@ export default function DesignPage() {
       const res = await fetch('/api/ai/design', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageDataUrl, style: selectedStyle, roomType }),
+        body: JSON.stringify({ imageDataUrl, style: selectedStyle, roomType, brand: brand ?? undefined }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Bilinmeyen hata')

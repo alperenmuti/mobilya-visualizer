@@ -44,7 +44,7 @@ function MockupContent() {
       const res = await fetch('/api/mockup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ productDataUrl: productImage, productName: productName.trim() }),
+        body: JSON.stringify({ productDataUrl: productImage, productName: productName.trim(), brand: brand || undefined }),
       })
       const text = await res.text()
       let data: { mockups?: Mockup[]; error?: string }

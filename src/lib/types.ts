@@ -4,6 +4,7 @@ export interface Tenant {
   slug: string
   logo_url?: string
   primary_color?: string
+  credits: number
   created_at: string
 }
 

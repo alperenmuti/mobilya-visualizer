@@ -2,16 +2,24 @@ import { NextRequest } from 'next/server'
 import type { Part } from '@google/generative-ai'
 import { getGeminiModel, dataUrlToInlineData, describePlacement, extractImageFromResponse, drawMarker } from '@/lib/gemini'
 import { roomTypeToEn } from '@/lib/roomTypes'
+import { deductCredit } from '@/lib/credits'
 
 export async function POST(req: NextRequest) {
   try {
     const {
       imageDataUrl, furnitureName, furnitureImageUrl,
-      clickX, clickY, markerDrawn: clientMarked, roomType,
+      clickX, clickY, markerDrawn: clientMarked, roomType, brand,
     } = await req.json()
 
     if (!imageDataUrl || !furnitureName) {
       return Response.json({ error: 'Eksik parametreler' }, { status: 400 })
+    }
+
+    if (brand) {
+      const credit = await deductCredit(brand)
+      if (!credit.ok) {
+        return Response.json({ error: 'Kontörünüz bitti. Lütfen yönetici ile iletişime geçin.', credits: 0 }, { status: 402 })
+      }
     }
 
     if (!process.env.GEMINI_KEY) {

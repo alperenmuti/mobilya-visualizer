@@ -4,12 +4,13 @@ import { runFluxKontextMulti } from '@/lib/fal'
 import { engineerPlacement, getOrientationRules } from '@/lib/placement'
 import { getGeminiModel, dataUrlToInlineData, extractImageFromResponse } from '@/lib/gemini'
 import { roomTypeToEn } from '@/lib/roomTypes'
+import { deductCredit } from '@/lib/credits'
 
 export const maxDuration = 60
 
 export async function POST(req: NextRequest) {
   try {
-    const { imageDataUrl, furnitureName, furnitureImageUrl, clickX, clickY, markerDrawn, preComposited, diag, roomType } = await req.json()
+    const { imageDataUrl, furnitureName, furnitureImageUrl, clickX, clickY, markerDrawn, preComposited, diag, roomType, brand } = await req.json()
 
     if (diag) {
       return Response.json({ gemini: !!process.env.GEMINI_KEY, fal: !!process.env.FAL_KEY })
@@ -17,6 +18,13 @@ export async function POST(req: NextRequest) {
 
     if (!imageDataUrl || !furnitureName) {
       return Response.json({ error: 'Eksik parametreler' }, { status: 400 })
+    }
+
+    if (brand) {
+      const credit = await deductCredit(brand)
+      if (!credit.ok) {
+        return Response.json({ error: 'Kontörünüz bitti. Lütfen yönetici ile iletişime geçin.', credits: 0 }, { status: 402 })
+      }
     }
 
     const hasClick = typeof clickX === 'number' && typeof clickY === 'number'

@@ -93,6 +93,7 @@ export default function ReplaceFurniturePage() {
           imageWidth: imageDimensions.width,
           imageHeight: imageDimensions.height,
           roomType,
+          brand: brand ?? undefined,
         }),
       })
       const data = await res.json()

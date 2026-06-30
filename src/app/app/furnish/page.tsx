@@ -5,12 +5,14 @@ import { ArrowLeft, Sparkles, Download, RotateCcw, AlertCircle, Loader2, X } fro
 import RoomCanvas from '@/components/RoomCanvas'
 import FurnitureList from '@/components/FurnitureList'
 import RoomTypeSelector from '@/components/RoomTypeSelector'
+import CreditBadge from '@/components/CreditBadge'
 import type { FurnitureItem } from '@/lib/types'
 
 type Job = { status: 'idle' } | { status: 'processing' } | { status: 'error'; error: string }
 
 export default function FurnishPage() {
   const [brand, setBrand] = useState<string | null>(null)
+  const [creditRefresh, setCreditRefresh] = useState(0)
   const [roomType, setRoomType] = useState('')
   const [roomDataUrl, setRoomDataUrl] = useState<string | null>(null)
   const [resultUrl, setResultUrl] = useState<string | null>(null)
@@ -59,6 +61,7 @@ export default function FurnishPage() {
           roomDataUrl,
           furniture: selected.map(f => ({ name: f.name, image_url: f.image_url })),
           roomType,
+          brand: brand ?? undefined,
         }),
       })
       const text = await res.text()
@@ -66,6 +69,7 @@ export default function FurnishPage() {
       try { data = JSON.parse(text) } catch { throw new Error('Sunucu hatası: ' + text.slice(0, 80)) }
       if (!res.ok || !data.resultUrl) throw new Error(data.error ?? 'Oda döşenemedi, tekrar deneyin.')
       setResultUrl(data.resultUrl)
+      setCreditRefresh(r => r + 1)
       setJob({ status: 'idle' })
     } catch (err) {
       setJob({ status: 'error', error: (err as Error).message })
@@ -99,6 +103,7 @@ export default function FurnishPage() {
           <ArrowLeft size={16} style={{ color: 'var(--muted-fg)' }} />
         </Link>
         <div>
+          <div className="ml-auto"><CreditBadge brand={brand} refreshKey={creditRefresh} /></div>
           <h1 className="font-semibold text-sm">Odamı Sen Yap</h1>
           <p className="text-xs" style={{ color: 'var(--muted-fg)' }}>
             {selected.length > 0

@@ -4,6 +4,7 @@ import { Suspense } from 'react'
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { ArrowLeft, Replace, ArrowRight, Building2, Loader2, Wand2, Trash2, Sparkles, Sofa } from 'lucide-react'
+import CreditBadge from '@/components/CreditBadge'
 import type { Tenant } from '@/lib/types'
 
 function AppSelectorContent() {
@@ -31,6 +32,7 @@ function AppSelectorContent() {
             <ArrowLeft size={18} style={{ color: 'var(--muted-fg)' }} />
           </Link>
           <span className="font-semibold text-sm">Mobilya Görselleştirici</span>
+          <div className="ml-auto"><CreditBadge brand={brand} /></div>
         </header>
         <main className="flex-1 flex flex-col items-center justify-center px-6 py-16">
           <h2 className="text-2xl font-bold mb-2 text-center">Ne yapmak istersiniz?</h2>

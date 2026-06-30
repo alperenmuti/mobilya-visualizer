@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import type { Part } from '@google/generative-ai'
 import { getGeminiModel, dataUrlToInlineData, extractImageFromResponse } from '@/lib/gemini'
 import { roomTypeToEn } from '@/lib/roomTypes'
+import { deductCredit } from '@/lib/credits'
 
 export const maxDuration = 60
 
@@ -25,14 +26,22 @@ async function fetchImageParts(items: FurnitureRef[]): Promise<{ name: string; m
 
 export async function POST(req: NextRequest) {
   try {
-    const { roomDataUrl, furniture, roomType } = await req.json() as {
+    const { roomDataUrl, furniture, roomType, brand } = await req.json() as {
       roomDataUrl: string
       furniture: FurnitureRef[]
       roomType?: string
+      brand?: string
     }
 
     if (!roomDataUrl || !furniture?.length) {
       return Response.json({ error: 'Oda görseli ve en az bir mobilya gerekli' }, { status: 400 })
+    }
+
+    if (brand) {
+      const credit = await deductCredit(brand)
+      if (!credit.ok) {
+        return Response.json({ error: 'Kontörünüz bitti. Lütfen yönetici ile iletişime geçin.', credits: 0 }, { status: 402 })
+      }
     }
 
     if (furniture.length > 12) {

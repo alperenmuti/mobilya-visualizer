@@ -1,6 +1,6 @@
 'use client'
 import React, { useState, useEffect } from 'react'
-import { Plus, Trash2, Loader2, Building2, X, Check, AlertCircle, Copy } from 'lucide-react'
+import { Plus, Trash2, Loader2, Building2, X, Check, AlertCircle, Copy, Coins } from 'lucide-react'
 import type { Tenant } from '@/lib/types'
 import { slugify } from '@/lib/utils'
 import { getAdminAuthHeaders } from '@/lib/adminAuth'
@@ -16,6 +16,10 @@ export default function TenantsPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [copied, setCopied] = useState<string | null>(null)
+  // Credits management
+  const [creditInputs, setCreditInputs] = useState<Record<string, string>>({})
+  const [creditSaving, setCreditSaving] = useState<string | null>(null)
+  const [creditMsg, setCreditMsg] = useState<Record<string, string>>({})
 
   useEffect(() => {
     fetch('/api/admin/tenants', { headers: getAdminAuthHeaders() })
@@ -62,6 +66,26 @@ export default function TenantsPage() {
     })
     if (res.ok) setTenants(prev => prev.filter(t => t.id !== id))
     setDeleteId(null)
+  }
+
+  const handleAddCredits = async (tenant: Tenant, action: 'add' | 'set') => {
+    const raw = creditInputs[tenant.id] ?? ''
+    const amount = parseInt(raw, 10)
+    if (!raw || isNaN(amount) || amount < 0) return
+    setCreditSaving(tenant.id)
+    const res = await fetch('/api/credits', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...getAdminAuthHeaders() },
+      body: JSON.stringify({ id: tenant.id, amount, action }),
+    })
+    const data = await res.json()
+    if (res.ok) {
+      setTenants(prev => prev.map(t => t.id === tenant.id ? { ...t, credits: data.credits } : t))
+      setCreditInputs(prev => ({ ...prev, [tenant.id]: '' }))
+      setCreditMsg(prev => ({ ...prev, [tenant.id]: `✓ ${data.credits} kontör` }))
+      setTimeout(() => setCreditMsg(prev => { const n = { ...prev }; delete n[tenant.id]; return n }), 2500)
+    }
+    setCreditSaving(null)
   }
 
   const copyLink = (slug: string) => {
@@ -181,24 +205,66 @@ export default function TenantsPage() {
                 <p className="text-xs mt-0.5 font-mono" style={{ color: 'var(--muted-fg)' }}>
                   /app?brand={tenant.slug}
                 </p>
+                {/* Credits row */}
+                <div className="flex items-center gap-2 mt-2">
+                  <span
+                    className="flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full"
+                    style={{ background: (tenant.credits ?? 0) > 0 ? '#F0FDF4' : '#FEF2F2', color: (tenant.credits ?? 0) > 0 ? '#16A34A' : '#DC2626' }}
+                  >
+                    <Coins size={10} /> {tenant.credits ?? 0} kontör
+                  </span>
+                  <input
+                    type="number"
+                    min="0"
+                    value={creditInputs[tenant.id] ?? ''}
+                    onChange={e => setCreditInputs(prev => ({ ...prev, [tenant.id]: e.target.value }))}
+                    onKeyDown={e => e.key === 'Enter' && handleAddCredits(tenant, 'add')}
+                    placeholder="miktar"
+                    className="w-20 px-2 py-0.5 text-xs rounded-lg outline-none"
+                    style={{ background: 'var(--muted)', border: '1px solid var(--border)' }}
+                  />
+                  <button
+                    onClick={() => handleAddCredits(tenant, 'add')}
+                    disabled={creditSaving === tenant.id}
+                    className="px-2 py-0.5 rounded-lg text-xs font-medium text-white disabled:opacity-50"
+                    style={{ background: 'var(--accent)' }}
+                    title="Kontör ekle"
+                  >
+                    {creditSaving === tenant.id ? <Loader2 size={10} className="animate-spin" /> : '+Ekle'}
+                  </button>
+                  <button
+                    onClick={() => handleAddCredits(tenant, 'set')}
+                    disabled={creditSaving === tenant.id}
+                    className="px-2 py-0.5 rounded-lg text-xs font-medium disabled:opacity-50"
+                    style={{ background: 'var(--muted)', border: '1px solid var(--border)', color: 'var(--muted-fg)' }}
+                    title="Belirtilen değere ayarla"
+                  >
+                    =Ayarla
+                  </button>
+                  {creditMsg[tenant.id] && (
+                    <span className="text-xs font-medium" style={{ color: '#16A34A' }}>{creditMsg[tenant.id]}</span>
+                  )}
+                </div>
               </div>
-              <button
-                onClick={() => copyLink(tenant.slug)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors hover:bg-gray-100"
-                style={{ color: copied === tenant.slug ? '#16A34A' : 'var(--muted-fg)' }}
-                title="Müşteri bağlantısını kopyala"
-              >
-                {copied === tenant.slug ? <Check size={12} /> : <Copy size={12} />}
-                {copied === tenant.slug ? 'Kopyalandı' : 'Bağlantı'}
-              </button>
-              <button
-                onClick={() => handleDelete(tenant.id)}
-                disabled={deleteId === tenant.id}
-                className="p-2 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50"
-                style={{ color: '#DC2626' }}
-              >
-                {deleteId === tenant.id ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
-              </button>
+              <div className="flex items-start gap-1 flex-shrink-0">
+                <button
+                  onClick={() => copyLink(tenant.slug)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors hover:bg-gray-100"
+                  style={{ color: copied === tenant.slug ? '#16A34A' : 'var(--muted-fg)' }}
+                  title="Müşteri bağlantısını kopyala"
+                >
+                  {copied === tenant.slug ? <Check size={12} /> : <Copy size={12} />}
+                  {copied === tenant.slug ? 'Kopyalandı' : 'Bağlantı'}
+                </button>
+                <button
+                  onClick={() => handleDelete(tenant.id)}
+                  disabled={deleteId === tenant.id}
+                  className="p-2 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50"
+                  style={{ color: '#DC2626' }}
+                >
+                  {deleteId === tenant.id ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
+                </button>
+              </div>
             </div>
           ))}
         </div>
