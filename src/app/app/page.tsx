@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { Suspense } from 'react'
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { ArrowLeft, Layers, Replace, ArrowRight, Building2, Loader2, Wand2, Trash2, Sparkles } from 'lucide-react'
+import { ArrowLeft, Replace, ArrowRight, Building2, Loader2, Wand2, Trash2, Sparkles, Sofa } from 'lucide-react'
 import type { Tenant } from '@/lib/types'
 
 function AppSelectorContent() {
@@ -39,12 +39,12 @@ function AppSelectorContent() {
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-4xl">
             <ModeCard
-              href={`/app/place?brand=${brand}`}
-              icon={<Layers size={32} style={{ color: 'var(--accent)' }} />}
-              title="Mobilya Yerleştir"
-              subtitle="Boş odaya"
-              description="Boş oda fotoğrafı yükle, mobilya seç, tıkladığın noktaya AI yerleştirsin."
-              steps={['Oda fotoğrafı yükle', 'Mobilya seç', 'Nereye koyacağına tıkla', 'AI görüntüsünü oluştur']}
+              href={`/app/furnish?brand=${brand}`}
+              icon={<Sofa size={32} style={{ color: 'var(--accent)' }} />}
+              title="Odamı Sen Yap"
+              subtitle="AI ile döşe"
+              description="Boş odanı yükle, istediğin mobilyaları seç — AI hepsini iç mimar gibi yerleştirsin."
+              steps={['Boş oda fotoğrafı yükle', 'Mobilyaları seç (max 12)', 'AI iç mimar gibi yerleştirir', 'İndir & paylaş']}
             />
             <ModeCard
               href={`/app/replace?brand=${brand}`}
@@ -100,7 +100,7 @@ function AppSelectorContent() {
             Bir işlev seçin ve başlayın.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-4xl">
-            <ModeCard href="/app/place" icon={<Layers size={32} style={{ color: 'var(--accent)' }} />} title="Mobilya Yerleştir" subtitle="Boş odaya" description="Boş oda fotoğrafı yükle, mobilya seç, tıkladığın noktaya AI yerleştirsin." steps={['Oda fotoğrafı yükle', 'Mobilya seç', 'Nereye koyacağına tıkla', 'AI görüntüsünü oluştur']} />
+            <ModeCard href="/app/furnish" icon={<Sofa size={32} style={{ color: 'var(--accent)' }} />} title="Odamı Sen Yap" subtitle="AI ile döşe" description="Boş odanı yükle, istediğin mobilyaları seç — AI hepsini iç mimar gibi yerleştirsin." steps={['Boş oda fotoğrafı yükle', 'Mobilyaları seç (max 12)', 'AI iç mimar gibi yerleştirir', 'İndir & paylaş']} />
             <ModeCard href="/app/replace" icon={<Replace size={32} style={{ color: 'var(--accent)' }} />} title="Mobilya Değiştir" subtitle="Dolu odada" description="Odandaki bir mobilyaya tıkla, listeden yenisini seç — sadece o mobilya değişir." steps={['Oda fotoğrafı yükle', 'Değiştirmek istediğine tıkla', 'Yeni mobilyayı seç', 'AI değişikliği uygular']} />
             <ModeCard href="/app/design" icon={<Wand2 size={32} style={{ color: 'var(--accent)' }} />} title="Baştan Dizayn Et" subtitle="Stil seç" description="Boş oda yükle, 6 farklı tarzdan birini seç — AI odayı baştan döşesin." steps={['Boş oda fotoğrafı yükle', 'Dekorasyon stili seç', 'AI odayı tamamen döşer']} />
             <ModeCard href="/app/empty" icon={<Trash2 size={32} style={{ color: 'var(--accent)' }} />} title="Odayı Boşalt" subtitle="Eşyaları kaldır" description="Dolu odayı yükle — AI tüm mobilya ve eşyaları kaldırır, satışa hazır boş oda gösterir." steps={['Dolu oda fotoğrafı yükle', 'AI tüm eşyaları kaldırır', 'Temiz boş oda indir']} />

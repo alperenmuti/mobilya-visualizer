@@ -7,11 +7,16 @@ import { cn } from '@/lib/utils'
 interface Props {
   items: FurnitureItem[]
   loading?: boolean
+  // single-select (existing)
   selected?: FurnitureItem | null
-  onSelect: (item: FurnitureItem) => void
+  onSelect?: (item: FurnitureItem) => void
+  // multi-select (new)
+  multiSelect?: boolean
+  selectedIds?: string[]
+  onToggle?: (item: FurnitureItem) => void
 }
 
-export default function FurnitureList({ items, loading, selected, onSelect }: Props) {
+export default function FurnitureList({ items, loading, selected, onSelect, multiSelect, selectedIds = [], onToggle }: Props) {
   const [search, setSearch] = useState('')
   const [activeCategory, setActiveCategory] = useState('Tümü')
 
@@ -84,9 +89,14 @@ export default function FurnitureList({ items, loading, selected, onSelect }: Pr
         </div>
       )}
 
-      {/* Count */}
-      <div className="px-4 pb-2">
+      {/* Count / selection badge */}
+      <div className="px-4 pb-2 flex items-center gap-2">
         <span className="text-xs" style={{ color: 'var(--muted-fg)' }}>{filtered.length} ürün</span>
+        {multiSelect && selectedIds.length > 0 && (
+          <span className="text-xs font-semibold px-2 py-0.5 rounded-full text-white" style={{ background: 'var(--accent)' }}>
+            {selectedIds.length} seçili
+          </span>
+        )}
       </div>
 
       {/* List */}
@@ -96,17 +106,21 @@ export default function FurnitureList({ items, loading, selected, onSelect }: Pr
             <p className="text-sm" style={{ color: 'var(--muted-fg)' }}>Ürün bulunamadı</p>
           </div>
         ) : (
-          filtered.map(item => (
+          filtered.map(item => {
+            const isActive = multiSelect
+              ? selectedIds.includes(item.id)
+              : selected?.id === item.id
+            return (
             <button
               key={item.id}
-              onClick={() => onSelect(item)}
+              onClick={() => multiSelect ? onToggle?.(item) : onSelect?.(item)}
               className={cn(
                 'w-full flex items-center gap-3 p-3 rounded-xl text-left transition-all hover:scale-[1.01]',
-                selected?.id === item.id ? 'ring-2' : ''
+                isActive ? 'ring-2' : ''
               )}
               style={{
-                background: selected?.id === item.id ? '#F5EFE6' : 'var(--card)',
-                border: `1px solid ${selected?.id === item.id ? 'var(--accent)' : 'var(--border)'}`,
+                background: isActive ? '#F5EFE6' : 'var(--card)',
+                border: `1px solid ${isActive ? 'var(--accent)' : 'var(--border)'}`,
                 '--tw-ring-color': 'var(--accent)',
               } as React.CSSProperties}
             >
@@ -139,8 +153,18 @@ export default function FurnitureList({ items, loading, selected, onSelect }: Pr
                 )}
               </div>
 
-              {/* Link */}
-              {item.product_url && (
+              {/* Multi-select checkmark OR external link */}
+              {multiSelect ? (
+                <div
+                  className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 border-2 transition-all"
+                  style={{
+                    borderColor: isActive ? 'var(--accent)' : 'var(--border)',
+                    background: isActive ? 'var(--accent)' : 'transparent',
+                  }}
+                >
+                  {isActive && <span className="text-white text-xs font-bold">✓</span>}
+                </div>
+              ) : item.product_url ? (
                 <a
                   href={item.product_url}
                   target="_blank"
@@ -150,9 +174,9 @@ export default function FurnitureList({ items, loading, selected, onSelect }: Pr
                 >
                   <ExternalLink size={12} style={{ color: 'var(--muted-fg)' }} />
                 </a>
-              )}
+              ) : null}
             </button>
-          ))
+          )})
         )}
       </div>
     </div>
