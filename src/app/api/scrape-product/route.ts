@@ -64,14 +64,19 @@ async function fetchHtml(url: string): Promise<string> {
   // Use ScrapingAnt when available — bypasses Cloudflare from cloud IPs
   const antKey = process.env.SCRAPINGANT_KEY
   if (antKey) {
-    const antUrl = `https://api.scrapingant.com/v2/general?url=${encodeURIComponent(url)}&browser=false&return_page_source=true`
+    const antUrl = `https://api.scrapingant.com/v2/general?url=${encodeURIComponent(url)}&browser=false`
     const res = await fetch(antUrl, {
       headers: { 'x-api-key': antKey },
       signal: AbortSignal.timeout(20000),
     })
-    if (!res.ok) throw new Error(`ScrapingAnt HTTP ${res.status}`)
-    const json = await res.json()
-    return json.content ?? ''
+    const text = await res.text()
+    if (!res.ok) throw new Error(`ScrapingAnt ${res.status}: ${text.slice(0, 100)}`)
+    try {
+      return JSON.parse(text).content ?? text
+    } catch {
+      // API returned HTML directly
+      return text
+    }
   }
 
   // Direct fetch (works locally, blocked on Vercel for Cloudflare-protected sites)
