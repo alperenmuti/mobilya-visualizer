@@ -24,7 +24,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </div>
             <div>
               <p className="text-sm font-bold" style={{ color: 'var(--foreground)' }}>Mobilya AI</p>
-              <p className="text-xs" style={{ color: 'var(--muted-fg)' }}>Superadmin</p>
+              <p className="text-xs" style={{ color: 'var(--muted-fg)' }}>Süperadmin</p>
             </div>
           </div>
         </div>
@@ -33,19 +33,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <NavLink
             href="/admin/dashboard"
             icon={<LayoutDashboard size={15} />}
-            label="Genel Bakis"
+            label="Genel Bakış"
             active={pathname === '/admin/dashboard'}
           />
           <NavLink
             href="/admin/dashboard/tenants"
             icon={<Building2 size={15} />}
-            label="Isletmeler"
+            label="İşletmeler"
             active={pathname?.startsWith('/admin/dashboard/tenants') ?? false}
           />
           <NavLink
             href="/admin/dashboard/furniture"
             icon={<Package size={15} />}
-            label="Mobilya Katalogu"
+            label="Mobilya Kataloğu"
             active={pathname?.startsWith('/admin/dashboard/furniture') ?? false}
           />
         </nav>
@@ -58,7 +58,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             style={{ color: 'var(--muted-fg)' }}
           >
             <LogOut size={14} />
-            Cikis Yap
+            Çıkış Yap
           </Link>
         </div>
       </aside>

@@ -22,10 +22,10 @@ export default function TenantLoginPage() {
         body: JSON.stringify({ email, password }),
       })
       const data = await res.json()
-      if (!res.ok) { setError(data.error ?? 'Giris basarisiz'); setLoading(false); return }
+      if (!res.ok) { setError(data.error ?? 'Giriş başarısız'); setLoading(false); return }
       router.push(`/app?brand=${data.slug}`)
     } catch {
-      setError('Baglanti hatasi')
+      setError('Bağlantı hatası')
       setLoading(false)
     }
   }
@@ -59,10 +59,10 @@ export default function TenantLoginPage() {
             className="text-white text-xl leading-relaxed mb-4"
             style={{ fontFamily: 'var(--font-playfair, Georgia, serif)', fontStyle: 'italic', opacity: 0.9 }}
           >
-            &ldquo;Mobilyanizi satin almadan once odanizda gorun.&rdquo;
+            &ldquo;Mobilyanızı satın almadan önce odanızda görün.&rdquo;
           </p>
           <p className="text-sm" style={{ color: 'rgba(255,255,255,0.55)' }}>
-            Yapay zeka destekli ic tasarim
+            Yapay zeka destekli iç tasarım
           </p>
         </div>
       </div>
@@ -77,10 +77,10 @@ export default function TenantLoginPage() {
               fontFamily: 'var(--font-playfair, Georgia, serif)',
             }}
           >
-            Hos Geldiniz
+            Hoş Geldiniz
           </h1>
           <p className="text-sm mb-10" style={{ color: 'var(--muted-fg)' }}>
-            Mobilya gorsellestiric paneline giris yapin
+            Mobilya Görselleştirici paneline giriş yapın
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -149,13 +149,13 @@ export default function TenantLoginPage() {
                 boxShadow: '0 8px 24px rgba(184,149,106,0.25)',
               }}
             >
-              {loading ? 'Giris yapiliyor...' : 'Giris Yap'}
+              {loading ? 'Giriş yapılıyor...' : 'Giriş Yap'}
             </button>
           </form>
 
           <div className="mt-8 pt-6" style={{ borderTop: '1px solid var(--border)' }}>
             <p className="text-xs text-center" style={{ color: 'var(--muted-fg)' }}>
-              Hesabiniz yok mu? Yoneticinizden erisim isteyin.
+              Hesabınız yok mu? Yöneticinizden erişim isteyin.
             </p>
           </div>
         </div>

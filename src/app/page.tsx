@@ -21,7 +21,7 @@ export default function LandingPage() {
           href="/admin/login"
           className="text-base transition-colors"
           style={{ color: 'var(--border-mid)' }}
-          aria-label="Yönetici girisi"
+          aria-label="Yönetici girişi"
         >
           ·
         </Link>
@@ -37,7 +37,7 @@ export default function LandingPage() {
               className="text-xs font-medium tracking-widest uppercase"
               style={{ color: 'var(--muted-fg)' }}
             >
-              Yapay Zeka Destekli Tasarim
+              Yapay Zeka Destekli Tasarım
             </span>
             <div className="h-px w-12 flex-shrink-0" style={{ background: 'var(--border-mid)' }} />
           </div>
@@ -46,28 +46,28 @@ export default function LandingPage() {
             className="text-5xl md:text-7xl font-bold tracking-tight mb-8 leading-tight"
             style={{ color: 'var(--foreground)', fontFamily: 'var(--font-playfair, Georgia, serif)' }}
           >
-            Mobilyanizi Satin Almadan
+            Mobilyanızı Satın Almadan
             <br />
-            <span style={{ color: 'var(--accent)', fontStyle: 'italic' }}>Odanizda Gorun</span>
+            <span style={{ color: 'var(--accent)', fontStyle: 'italic' }}>Odanızda Görün</span>
           </h1>
 
           <p
             className="text-lg md:text-xl max-w-lg mx-auto mb-12 leading-relaxed"
             style={{ color: 'var(--muted-fg)' }}
           >
-            Bos odaniza mobilya ekleyin ya da mevcut mobilyanizin yerine baskasinideneyin.
-            Yapay zeka sectiginiz mobilyayi dogru aci, renk ve isikla yerlestirir.
+            Boş odanıza mobilya ekleyin ya da mevcut mobilyanızın yerine başkasını deneyin.
+            Yapay zeka seçtiğiniz mobilyayı doğru açı, renk ve ışıkla yerleştirir.
           </p>
 
           <Link
-            href="/app"
-            className="inline-flex items-center gap-2.5 px-8 py-4 rounded-full text-white font-semibold text-sm tracking-wide transition-all hover:scale-105 active:scale-95"
+            href="/app/login"
+            className="inline-flex items-center gap-2.5 px-8 py-4 rounded-full text-white font-semibold text-sm tracking-wide transition-all hover:opacity-90 active:scale-95"
             style={{
               background: 'linear-gradient(135deg, var(--accent), var(--accent-dark))',
               boxShadow: '0 8px 24px rgba(184,149,106,0.30)',
             }}
           >
-            Deneyimi Baslt
+            Deneyimi Başlat
             <ArrowRight size={16} />
           </Link>
         </div>
@@ -79,19 +79,19 @@ export default function LandingPage() {
         >
           <FeaturePanel
             number="01"
-            title="Mobilya Yerlestir"
-            description="Bos odanizin fotografini yukleyin, mobilya listesinden secin ve AI isinizi yapar."
+            title="Mobilya Yerleştir"
+            description="Boş odanızın fotoğrafını yükleyin, mobilya listesinden seçin ve AI işinizi yapsın."
           />
           <FeaturePanel
             number="02"
-            title="Mobilya Degistir"
-            description="Dolu odadaki bir mobilyaya tiklayin, yerine koymayi istediginizi secin — AI sadece onu degistirir."
+            title="Mobilya Değiştir"
+            description="Dolu odadaki bir mobilyaya tıklayın, yerine koymak istediğinizi seçin — AI sadece onu değiştirir."
             bordered
           />
           <FeaturePanel
             number="03"
-            title="Basan Dizayn Et"
-            description="Bos odanizi yukleyin, 6 farkli dekorasyon stilinden birini secin — AI odayi basi`ndan doser."
+            title="Baştan Dizayn Et"
+            description="Boş odanızı yükleyin, 6 farklı dekorasyon stilinden birini seçin — AI odayı başından döşer."
           />
         </div>
       </main>
@@ -99,10 +99,10 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="flex items-center justify-between px-8 py-6" style={{ borderTop: '1px solid var(--border)' }}>
         <p className="text-xs" style={{ color: 'var(--muted-fg)' }}>
-          &copy; 2025 Mobilya Gorsellestiric
+          &copy; 2025 Mobilya AI
         </p>
         <Link href="/app/login" className="text-xs hover:underline transition-colors" style={{ color: 'var(--muted-fg)' }}>
-          Giris
+          Giriş
         </Link>
       </footer>
     </div>
@@ -130,7 +130,7 @@ function FeaturePanel({
     >
       <span
         className="block text-xs font-medium tracking-widest mb-5"
-        style={{ color: 'var(--accent)', fontFamily: 'var(--font-geist, sans-serif)' }}
+        style={{ color: 'var(--accent)' }}
       >
         {number}
       </span>

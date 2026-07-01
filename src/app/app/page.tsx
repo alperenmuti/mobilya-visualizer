@@ -60,7 +60,7 @@ function AppSelectorContent() {
           <Link href="/app" className="p-2 rounded-lg hover:bg-gray-100 transition-colors" aria-label="Geri">
             <ArrowLeft size={18} style={{ color: 'var(--muted-fg)' }} />
           </Link>
-          <span className="font-semibold text-sm" style={{ color: 'var(--foreground)' }}>Mobilya Gorsellestiric</span>
+          <span className="font-semibold text-sm" style={{ color: 'var(--foreground)' }}>Mobilya Görselleştirici</span>
           <div className="ml-auto flex items-center gap-2">
             <CreditBadge brand={brand} />
             {loggedIn && (
@@ -69,7 +69,7 @@ function AppSelectorContent() {
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-gray-100 transition-colors"
                 style={{ color: 'var(--muted-fg)' }}
               >
-                <LogOut size={13} /> Cikis
+                <LogOut size={13} /> Çıkış
               </button>
             )}
           </div>
@@ -82,43 +82,43 @@ function AppSelectorContent() {
             Ne yapmak istersiniz?
           </h2>
           <p className="text-sm mb-12 text-center" style={{ color: 'var(--muted-fg)' }}>
-            Bir islev secin ve baslayin.
+            Bir işlev seçin ve başlayın.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 w-full max-w-4xl">
             <ModeCard
               href={`/app/furnish?brand=${brand}`}
               icon={<Sofa size={28} style={{ color: 'var(--accent)' }} />}
-              title="Odami Sen Yap"
-              subtitle="AI ile dose"
-              description="Bos odani yukle, istedigin mobilyalari sec — AI hepsini ic mimar gibi yerlestirsin."
+              title="Odamı Sen Yap"
+              subtitle="AI ile döşe"
+              description="Boş odanı yükle, istediğin mobilyaları seç — AI hepsini iç mimar gibi yerleştirsin."
             />
             <ModeCard
               href={`/app/replace?brand=${brand}`}
               icon={<Replace size={28} style={{ color: 'var(--accent)' }} />}
-              title="Mobilya Degistir"
+              title="Mobilya Değiştir"
               subtitle="Dolu odada"
-              description="Odandaki bir mobilyaya tikla, listeden yenisini sec — sadece o mobilya degisir."
+              description="Odandaki bir mobilyaya tıkla, listeden yenisini seç — sadece o mobilya değişir."
             />
             <ModeCard
               href={`/app/design?brand=${brand}`}
               icon={<Wand2 size={28} style={{ color: 'var(--accent)' }} />}
-              title="Bastan Dizayn Et"
-              subtitle="Stil sec"
-              description="Bos oda yukle, 6 farkli tarzdan birini sec — AI odayi bastan doser."
+              title="Baştan Dizayn Et"
+              subtitle="Stil seç"
+              description="Boş oda yükle, 6 farklı tarzdan birini seç — AI odayı baştan döşer."
             />
             <ModeCard
               href={`/app/empty?brand=${brand}`}
               icon={<Trash2 size={28} style={{ color: 'var(--accent)' }} />}
-              title="Odayi Bosalt"
-              subtitle="Esyalari kaldir"
-              description="Dolu odayi yukle — AI tum mobilya ve esyalari kaldirir, satisa hazir bos oda gosterir."
+              title="Odayı Boşalt"
+              subtitle="Eşyaları kaldır"
+              description="Dolu odayı yükle — AI tüm mobilya ve eşyaları kaldırır, satışa hazır boş oda gösterir."
             />
             <ModeCard
               href={`/app/mockup?brand=${brand}`}
               icon={<Sparkles size={28} style={{ color: 'var(--accent)' }} />}
-              title="Mockup Olustur"
-              subtitle="Yasam stili gorseli"
-              description="Urun fotografini yukle — AI 4 farkli oda ortaminda yasam stili mockup gorseli olusturur."
+              title="Mockup Oluştur"
+              subtitle="Yaşam stili görseli"
+              description="Ürün fotoğrafını yükle — AI 4 farklı oda ortamında yaşam stili mockup görseli oluşturur."
             />
           </div>
         </main>
@@ -134,7 +134,7 @@ function AppSelectorContent() {
           <Link href="/" className="p-2 rounded-lg hover:bg-gray-100 transition-colors" aria-label="Geri">
             <ArrowLeft size={18} style={{ color: 'var(--muted-fg)' }} />
           </Link>
-          <span className="font-semibold text-sm" style={{ color: 'var(--foreground)' }}>Mobilya Gorsellestiric</span>
+          <span className="font-semibold text-sm" style={{ color: 'var(--foreground)' }}>Mobilya Görselleştirici</span>
         </header>
         <main className="flex-1 flex flex-col items-center justify-center px-6 py-16">
           <h2
@@ -144,14 +144,14 @@ function AppSelectorContent() {
             Ne yapmak istersiniz?
           </h2>
           <p className="text-sm mb-12 text-center" style={{ color: 'var(--muted-fg)' }}>
-            Bir islev secin ve baslayin.
+            Bir işlev seçin ve başlayın.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 w-full max-w-4xl">
-            <ModeCard href="/app/furnish" icon={<Sofa size={28} style={{ color: 'var(--accent)' }} />} title="Odami Sen Yap" subtitle="AI ile dose" description="Bos odani yukle, istedigin mobilyalari sec — AI hepsini ic mimar gibi yerlestirsin." />
-            <ModeCard href="/app/replace" icon={<Replace size={28} style={{ color: 'var(--accent)' }} />} title="Mobilya Degistir" subtitle="Dolu odada" description="Odandaki bir mobilyaya tikla, listeden yenisini sec — sadece o mobilya degisir." />
-            <ModeCard href="/app/design" icon={<Wand2 size={28} style={{ color: 'var(--accent)' }} />} title="Bastan Dizayn Et" subtitle="Stil sec" description="Bos oda yukle, 6 farkli tarzdan birini sec — AI odayi bastan doser." />
-            <ModeCard href="/app/empty" icon={<Trash2 size={28} style={{ color: 'var(--accent)' }} />} title="Odayi Bosalt" subtitle="Esyalari kaldir" description="Dolu odayi yukle — AI tum mobilya ve esyalari kaldirir, satisa hazir bos oda gosterir." />
-            <ModeCard href="/app/mockup" icon={<Sparkles size={28} style={{ color: 'var(--accent)' }} />} title="Mockup Olustur" subtitle="Yasam stili gorseli" description="Urun fotografini yukle — AI 4 farkli oda ortaminda yasam stili mockup gorseli olusturur." />
+            <ModeCard href="/app/furnish" icon={<Sofa size={28} style={{ color: 'var(--accent)' }} />} title="Odamı Sen Yap" subtitle="AI ile döşe" description="Boş odanı yükle, istediğin mobilyaları seç — AI hepsini iç mimar gibi yerleştirsin." />
+            <ModeCard href="/app/replace" icon={<Replace size={28} style={{ color: 'var(--accent)' }} />} title="Mobilya Değiştir" subtitle="Dolu odada" description="Odandaki bir mobilyaya tıkla, listeden yenisini seç — sadece o mobilya değişir." />
+            <ModeCard href="/app/design" icon={<Wand2 size={28} style={{ color: 'var(--accent)' }} />} title="Baştan Dizayn Et" subtitle="Stil seç" description="Boş oda yükle, 6 farklı tarzdan birini seç — AI odayı baştan döşer." />
+            <ModeCard href="/app/empty" icon={<Trash2 size={28} style={{ color: 'var(--accent)' }} />} title="Odayı Boşalt" subtitle="Eşyaları kaldır" description="Dolu odayı yükle — AI tüm mobilya ve eşyaları kaldırır, satışa hazır boş oda gösterir." />
+            <ModeCard href="/app/mockup" icon={<Sparkles size={28} style={{ color: 'var(--accent)' }} />} title="Mockup Oluştur" subtitle="Yaşam stili görseli" description="Ürün fotoğrafını yükle — AI 4 farklı oda ortamında yaşam stili mockup görseli oluşturur." />
           </div>
         </main>
       </div>
@@ -165,7 +165,7 @@ function AppSelectorContent() {
         <Link href="/" className="p-2 rounded-lg hover:bg-gray-100 transition-colors" aria-label="Geri">
           <ArrowLeft size={18} style={{ color: 'var(--muted-fg)' }} />
         </Link>
-        <span className="font-semibold text-sm" style={{ color: 'var(--foreground)' }}>Mobilya Gorsellestiric</span>
+        <span className="font-semibold text-sm" style={{ color: 'var(--foreground)' }}>Mobilya Görselleştirici</span>
       </header>
       <main className="flex-1 flex flex-col items-center justify-center px-6 py-16">
         <h2

@@ -23,11 +23,11 @@ export default function AdminLoginPage() {
         body: JSON.stringify({ email, password }),
       })
       const data = await res.json()
-      if (!res.ok) { setError(data.error ?? 'Giris basarisiz'); setLoading(false); return }
+      if (!res.ok) { setError(data.error ?? 'Giriş başarısız'); setLoading(false); return }
       if (data.token) sessionStorage.setItem('admin_token', data.token)
       router.push('/admin/dashboard')
     } catch {
-      setError('Baglanti hatasi')
+      setError('Bağlantı hatası')
       setLoading(false)
     }
   }
@@ -61,10 +61,10 @@ export default function AdminLoginPage() {
             className="text-white text-xl leading-relaxed mb-4"
             style={{ fontFamily: 'var(--font-playfair, Georgia, serif)', fontStyle: 'italic', opacity: 0.75 }}
           >
-            &ldquo;Platformu yonetin, isletmeleri buyutun.&rdquo;
+            &ldquo;Platformu yönetin, işletmeleri büyütün.&rdquo;
           </p>
           <p className="text-sm" style={{ color: 'rgba(255,255,255,0.35)' }}>
-            Superadmin erisimi
+            Süperadmin erişimi
           </p>
         </div>
       </div>
@@ -79,10 +79,10 @@ export default function AdminLoginPage() {
               fontFamily: 'var(--font-playfair, Georgia, serif)',
             }}
           >
-            Yonetici Paneli
+            Yönetici Paneli
           </h1>
           <p className="text-sm mb-10" style={{ color: 'var(--muted-fg)' }}>
-            Superadmin paneline erisim saglayin
+            Süperadmin paneline erişim sağlayın
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -113,7 +113,7 @@ export default function AdminLoginPage() {
                 htmlFor="password"
                 style={{ color: 'var(--foreground)' }}
               >
-                Sifre
+                Şifre
               </label>
               <div className="relative">
                 <input
@@ -149,7 +149,7 @@ export default function AdminLoginPage() {
                 boxShadow: '0 8px 24px rgba(28,25,23,0.20)',
               }}
             >
-              {loading ? 'Giris yapiliyor...' : 'Giris Yap'}
+              {loading ? 'Giriş yapılıyor...' : 'Giriş Yap'}
             </button>
           </form>
         </div>

@@ -18,13 +18,13 @@ interface Props {
 
 export default function FurnitureList({ items, loading, selected, onSelect, multiSelect, selectedIds = [], onToggle }: Props) {
   const [search, setSearch] = useState('')
-  const [activeCategory, setActiveCategory] = useState('Tumu')
+  const [activeCategory, setActiveCategory] = useState('Tümü')
 
-  const categories = ['Tumu', ...Array.from(new Set(items.map(i => i.category).filter(Boolean) as string[]))]
+  const categories = ['Tümü', ...Array.from(new Set(items.map(i => i.category).filter(Boolean) as string[]))]
 
   const filtered = items.filter(item => {
     const matchSearch = item.name.toLowerCase().includes(search.toLowerCase())
-    const matchCat = activeCategory === 'Tumu' || item.category === activeCategory
+    const matchCat = activeCategory === 'Tümü' || item.category === activeCategory
     return matchSearch && matchCat
   })
 
@@ -101,7 +101,7 @@ export default function FurnitureList({ items, loading, selected, onSelect, mult
       <div className="flex-1 overflow-y-auto scrollbar-hide px-4 pb-4 space-y-2">
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
-            <p className="text-sm" style={{ color: 'var(--muted-fg)' }}>Urun bulunamadi</p>
+            <p className="text-sm" style={{ color: 'var(--muted-fg)' }}>Ürün bulunamadı</p>
           </div>
         ) : (
           filtered.map(item => {
