@@ -150,100 +150,109 @@ function FurnishedRoom() {
   )
 }
 
-/* ─── Stacked Room Cards Showcase ─────────────────────────────────── */
+/* ─── Animated Room Slideshow ─────────────────────────────────────── */
+
+const BADGE: React.CSSProperties = {
+  position: 'absolute',
+  top: 10,
+  right: 10,
+  background: 'rgba(255,255,255,0.88)',
+  color: '#6B4A28',
+  fontSize: 9,
+  fontWeight: 700,
+  letterSpacing: '0.12em',
+  textTransform: 'uppercase' as const,
+  padding: '3px 9px',
+  borderRadius: 20,
+}
 
 function RoomShowcase() {
+  const card: React.CSSProperties = {
+    position: 'absolute',
+    inset: 0,
+    borderRadius: 16,
+    overflow: 'hidden',
+    boxShadow: '0 16px 48px rgba(0,0,0,0.30)',
+  }
+
   return (
-    <div className="relative flex items-center justify-center w-full flex-1">
-      <div style={{ position: 'relative', width: 270, height: 220 }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, width: '100%', padding: '12px 0' }}>
+      <style>{`
+        @keyframes rc1 {
+          0%, 30%  { opacity: 1; }
+          37%, 93% { opacity: 0; }
+          100%     { opacity: 1; }
+        }
+        @keyframes rc2 {
+          0%, 30%  { opacity: 0; }
+          37%, 63% { opacity: 1; }
+          70%, 100%{ opacity: 0; }
+        }
+        @keyframes rc3 {
+          0%, 63%  { opacity: 0; }
+          70%, 93% { opacity: 1; }
+          100%     { opacity: 0; }
+        }
+        @keyframes dot1 {
+          0%, 30%  { opacity:1; width:18px; }
+          37%, 100%{ opacity:.35; width:6px; }
+        }
+        @keyframes dot2 {
+          0%, 30%  { opacity:.35; width:6px; }
+          37%, 63% { opacity:1; width:18px; }
+          70%, 100%{ opacity:.35; width:6px; }
+        }
+        @keyframes dot3 {
+          0%, 63%  { opacity:.35; width:6px; }
+          70%, 93% { opacity:1; width:18px; }
+          100%     { opacity:.35; width:6px; }
+        }
+      `}</style>
 
-        {/* Card 3 — back, empty room */}
-        <div style={{
-          position: 'absolute',
-          top: 32,
-          left: -10,
-          width: 248,
-          height: 168,
-          borderRadius: 14,
-          overflow: 'hidden',
-          transform: 'rotate(6deg)',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.22)',
-          zIndex: 0,
-        }}>
-          <EmptyRoom />
-          <span style={{
-            position: 'absolute',
-            top: 10,
-            right: 10,
-            background: 'rgba(255,255,255,0.85)',
-            color: '#8A6842',
-            fontSize: 9,
-            fontWeight: 700,
-            letterSpacing: '0.1em',
-            textTransform: 'uppercase',
-            padding: '3px 8px',
-            borderRadius: 20,
-          }}>Önce</span>
+      <div style={{ width: '100%', maxWidth: 280 }}>
+        {/* Card container */}
+        <div style={{ position: 'relative', width: '100%', paddingBottom: '67%' /* 3:2 aspect */ }}>
+          <div style={{ position: 'absolute', inset: 0 }}>
+
+            {/* Scene 1 — Empty room */}
+            <div style={{ ...card, zIndex: 2, animation: 'rc1 9s linear infinite' }}>
+              <EmptyRoom />
+              <span style={BADGE}>Önce</span>
+            </div>
+
+            {/* Scene 2 — Sofa added */}
+            <div style={{ ...card, zIndex: 1, opacity: 0, animation: 'rc2 9s linear infinite' }}>
+              <SemiRoom />
+              <span style={BADGE}>İşlemde</span>
+            </div>
+
+            {/* Scene 3 — Fully furnished */}
+            <div style={{ ...card, zIndex: 0, opacity: 0, animation: 'rc3 9s linear infinite' }}>
+              <FurnishedRoom />
+              <span style={BADGE}>Sonra</span>
+            </div>
+
+          </div>
         </div>
 
-        {/* Card 2 — middle, sofa added */}
-        <div style={{
-          position: 'absolute',
-          top: 16,
-          left: 6,
-          width: 248,
-          height: 168,
-          borderRadius: 14,
-          overflow: 'hidden',
-          transform: 'rotate(-3deg)',
-          boxShadow: '0 10px 36px rgba(0,0,0,0.26)',
-          zIndex: 1,
-        }}>
-          <SemiRoom />
-          <span style={{
-            position: 'absolute',
-            top: 10,
-            right: 10,
-            background: 'rgba(255,255,255,0.85)',
-            color: '#8A6842',
-            fontSize: 9,
-            fontWeight: 700,
-            letterSpacing: '0.1em',
-            textTransform: 'uppercase',
-            padding: '3px 8px',
-            borderRadius: 20,
-          }}>İşlemde</span>
+        {/* Progress dots */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 14, justifyContent: 'center' }}>
+          {[
+            { anim: 'dot1 9s linear infinite', label: 'Boş oda' },
+            { anim: 'dot2 9s linear infinite', label: 'Mobilya ekleniyor' },
+            { anim: 'dot3 9s linear infinite', label: 'Döşenmiş' },
+          ].map(({ anim, label }) => (
+            <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <div style={{
+                height: 4,
+                borderRadius: 2,
+                background: 'rgba(255,255,255,0.75)',
+                animation: anim,
+              }} />
+              <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.45)', whiteSpace: 'nowrap' }}>{label}</span>
+            </div>
+          ))}
         </div>
-
-        {/* Card 1 — front, fully furnished */}
-        <div style={{
-          position: 'absolute',
-          top: 0,
-          left: 12,
-          width: 248,
-          height: 168,
-          borderRadius: 14,
-          overflow: 'hidden',
-          transform: 'rotate(0deg)',
-          boxShadow: '0 12px 44px rgba(0,0,0,0.32)',
-          zIndex: 2,
-        }}>
-          <FurnishedRoom />
-          <span style={{
-            position: 'absolute',
-            top: 10,
-            right: 10,
-            background: 'rgba(255,255,255,0.92)',
-            color: '#5C3A1E',
-            fontSize: 9,
-            fontWeight: 700,
-            letterSpacing: '0.1em',
-            textTransform: 'uppercase',
-            padding: '3px 8px',
-            borderRadius: 20,
-          }}>Sonra</span>
-        </div>
-
       </div>
     </div>
   )
@@ -283,7 +292,7 @@ export default function TenantLoginPage() {
 
       {/* Left decorative panel */}
       <div
-        className="hidden md:flex md:w-2/5 flex-col py-12 px-10"
+        className="hidden md:flex md:w-2/5 flex-col py-10 px-10"
         style={{ background: 'linear-gradient(160deg, var(--accent-dark) 0%, #5C3D20 100%)' }}
       >
         {/* Logo */}
@@ -299,39 +308,19 @@ export default function TenantLoginPage() {
           </span>
         </div>
 
-        {/* Room showcase */}
+        {/* Room slideshow — fills remaining space */}
         <RoomShowcase />
 
-        {/* Caption + quote */}
+        {/* Quote at bottom */}
         <div className="flex-shrink-0">
-          {/* Step labels */}
-          <div className="flex items-center gap-3 mb-5">
-            {['Boş oda', 'Mobilya ekleniyor', 'Döşenmiş oda'].map((label, i) => (
-              <div key={i} className="flex items-center gap-1.5">
-                <span style={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: '50%',
-                  background: i === 2 ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.35)',
-                  display: 'inline-block',
-                  flexShrink: 0,
-                }} />
-                <span className="text-xs" style={{ color: i === 2 ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.4)', whiteSpace: 'nowrap' }}>
-                  {label}
-                </span>
-              </div>
-            ))}
-          </div>
-
           <div className="h-px mb-5" style={{ background: 'rgba(255,255,255,0.15)' }} />
-
           <p
-            className="text-white leading-relaxed mb-3"
-            style={{ fontFamily: 'var(--font-playfair, Georgia, serif)', fontStyle: 'italic', opacity: 0.85, fontSize: 17 }}
+            className="text-white leading-relaxed mb-2"
+            style={{ fontFamily: 'var(--font-playfair, Georgia, serif)', fontStyle: 'italic', opacity: 0.85, fontSize: 16 }}
           >
             &ldquo;Mobilyanızı satın almadan önce odanızda görün.&rdquo;
           </p>
-          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.45)' }}>
+          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.40)' }}>
             Yapay zeka destekli iç tasarım
           </p>
         </div>
