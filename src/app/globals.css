@@ -1,14 +1,20 @@
 @import "tailwindcss";
 
 :root {
-  --background: #FAF9F7;
-  --foreground: #1A1A1A;
+  --background: #F8F6F2;
+  --foreground: #1C1917;
   --card: #FFFFFF;
-  --muted: #F4F3F0;
-  --muted-fg: #6B6B6B;
-  --accent: #C4A882;
-  --accent-dark: #9A7E5C;
-  --border: #E8E5DF;
+  --muted: #F2EFE9;
+  --muted-fg: #78716C;
+  --accent: #B8956A;
+  --accent-dark: #8A6A42;
+  --accent-light: #F0E6D6;
+  --border: #E7E2D9;
+  --border-mid: #D6CFC4;
+
+  --shadow-sm: 0 1px 3px rgba(28,25,23,0.06), 0 1px 2px rgba(28,25,23,0.04);
+  --shadow-md: 0 4px 12px rgba(28,25,23,0.08), 0 2px 6px rgba(28,25,23,0.05);
+  --shadow-lg: 0 12px 32px rgba(28,25,23,0.10), 0 4px 12px rgba(28,25,23,0.06);
 }
 
 * { box-sizing: border-box; }
@@ -17,6 +23,8 @@ body {
   background: var(--background);
   color: var(--foreground);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 .scrollbar-hide::-webkit-scrollbar { display: none; }
@@ -25,6 +33,10 @@ body {
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(16px); }
   to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 @keyframes pulseRing {
   0%   { transform: scale(1); opacity: 0.6; }
@@ -36,9 +48,10 @@ body {
 }
 
 .animate-fade-up  { animation: fadeUp 0.5s ease forwards; }
+.animate-fade-in  { animation: fadeIn 0.4s ease forwards; }
 .animate-pulse-ring { animation: pulseRing 1.4s ease-out infinite; }
 .skeleton {
-  background: linear-gradient(90deg, #f0ede8 25%, #e8e4de 50%, #f0ede8 75%);
+  background: linear-gradient(90deg, #EDE8E1 25%, #E4DED6 50%, #EDE8E1 75%);
   background-size: 400px 100%;
   animation: shimmer 1.2s infinite;
 }

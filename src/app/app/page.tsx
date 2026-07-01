@@ -52,7 +52,7 @@ function AppSelectorContent() {
       .catch(() => setTenantsLoading(false))
   }, [brand])
 
-  // Brand selected → show mode selector
+  // Brand selected -> show mode selector
   if (brand) {
     return (
       <div className="min-h-screen flex flex-col" style={{ background: 'var(--background)' }}>
@@ -60,7 +60,7 @@ function AppSelectorContent() {
           <Link href="/app" className="p-2 rounded-lg hover:bg-gray-100 transition-colors" aria-label="Geri">
             <ArrowLeft size={18} style={{ color: 'var(--muted-fg)' }} />
           </Link>
-          <span className="font-semibold text-sm">Mobilya Görselleştirici</span>
+          <span className="font-semibold text-sm" style={{ color: 'var(--foreground)' }}>Mobilya Gorsellestiric</span>
           <div className="ml-auto flex items-center gap-2">
             <CreditBadge brand={brand} />
             {loggedIn && (
@@ -69,56 +69,56 @@ function AppSelectorContent() {
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-gray-100 transition-colors"
                 style={{ color: 'var(--muted-fg)' }}
               >
-                <LogOut size={13} /> Çıkış
+                <LogOut size={13} /> Cikis
               </button>
             )}
           </div>
         </header>
         <main className="flex-1 flex flex-col items-center justify-center px-6 py-16">
-          <h2 className="text-2xl font-bold mb-2 text-center">Ne yapmak istersiniz?</h2>
-          <p className="text-sm mb-10 text-center" style={{ color: 'var(--muted-fg)' }}>
-            Bir işlev seçin ve başlayın.
+          <h2
+            className="text-3xl font-bold mb-2 text-center"
+            style={{ fontFamily: 'var(--font-playfair, Georgia, serif)', color: 'var(--foreground)' }}
+          >
+            Ne yapmak istersiniz?
+          </h2>
+          <p className="text-sm mb-12 text-center" style={{ color: 'var(--muted-fg)' }}>
+            Bir islev secin ve baslayin.
           </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-4xl">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 w-full max-w-4xl">
             <ModeCard
               href={`/app/furnish?brand=${brand}`}
-              icon={<Sofa size={32} style={{ color: 'var(--accent)' }} />}
-              title="Odamı Sen Yap"
-              subtitle="AI ile döşe"
-              description="Boş odanı yükle, istediğin mobilyaları seç — AI hepsini iç mimar gibi yerleştirsin."
-              steps={['Boş oda fotoğrafı yükle', 'Mobilyaları seç (max 12)', 'AI iç mimar gibi yerleştirir', 'İndir & paylaş']}
+              icon={<Sofa size={28} style={{ color: 'var(--accent)' }} />}
+              title="Odami Sen Yap"
+              subtitle="AI ile dose"
+              description="Bos odani yukle, istedigin mobilyalari sec — AI hepsini ic mimar gibi yerlestirsin."
             />
             <ModeCard
               href={`/app/replace?brand=${brand}`}
-              icon={<Replace size={32} style={{ color: 'var(--accent)' }} />}
-              title="Mobilya Değiştir"
+              icon={<Replace size={28} style={{ color: 'var(--accent)' }} />}
+              title="Mobilya Degistir"
               subtitle="Dolu odada"
-              description="Odandaki bir mobilyaya tıkla, listeden yenisini seç — sadece o mobilya değişir."
-              steps={['Oda fotoğrafı yükle', 'Değiştirmek istediğine tıkla', 'Yeni mobilyayı seç', 'AI değişikliği uygular']}
+              description="Odandaki bir mobilyaya tikla, listeden yenisini sec — sadece o mobilya degisir."
             />
             <ModeCard
               href={`/app/design?brand=${brand}`}
-              icon={<Wand2 size={32} style={{ color: 'var(--accent)' }} />}
-              title="Baştan Dizayn Et"
-              subtitle="Stil seç"
-              description="Boş oda yükle, 6 farklı tarzdan birini seç — AI odayı baştan döşesin."
-              steps={['Boş oda fotoğrafı yükle', 'Dekorasyon stili seç', 'AI odayı tamamen döşer']}
+              icon={<Wand2 size={28} style={{ color: 'var(--accent)' }} />}
+              title="Bastan Dizayn Et"
+              subtitle="Stil sec"
+              description="Bos oda yukle, 6 farkli tarzdan birini sec — AI odayi bastan doser."
             />
             <ModeCard
               href={`/app/empty?brand=${brand}`}
-              icon={<Trash2 size={32} style={{ color: 'var(--accent)' }} />}
-              title="Odayı Boşalt"
-              subtitle="Eşyaları kaldır"
-              description="Dolu odayı yükle — AI tüm mobilya ve eşyaları kaldırır, satışa hazır boş oda gösterir."
-              steps={['Dolu oda fotoğrafı yükle', 'AI tüm eşyaları kaldırır', 'Temiz boş oda indir']}
+              icon={<Trash2 size={28} style={{ color: 'var(--accent)' }} />}
+              title="Odayi Bosalt"
+              subtitle="Esyalari kaldir"
+              description="Dolu odayi yukle — AI tum mobilya ve esyalari kaldirir, satisa hazir bos oda gosterir."
             />
             <ModeCard
               href={`/app/mockup?brand=${brand}`}
-              icon={<Sparkles size={32} style={{ color: 'var(--accent)' }} />}
-              title="Mockup Oluştur"
-              subtitle="Yaşam stili görseli"
-              description="Ürün fotoğrafı yükle — AI 4 farklı oda ortamında yaşam stili mockup görseli oluştursun."
-              steps={['Ürün fotoğrafı yükle', 'Ürün adını gir', 'AI 4 sahne üretir', 'İndir & paylaş']}
+              icon={<Sparkles size={28} style={{ color: 'var(--accent)' }} />}
+              title="Mockup Olustur"
+              subtitle="Yasam stili gorseli"
+              description="Urun fotografini yukle — AI 4 farkli oda ortaminda yasam stili mockup gorseli olusturur."
             />
           </div>
         </main>
@@ -126,7 +126,7 @@ function AppSelectorContent() {
     )
   }
 
-  // No brand → show tenant selection (or fall through to mode selector if no tenants)
+  // No brand -> show tenant selection (or fall through to mode selector if no tenants)
   if (!tenantsLoading && tenants.length === 0) {
     return (
       <div className="min-h-screen flex flex-col" style={{ background: 'var(--background)' }}>
@@ -134,19 +134,24 @@ function AppSelectorContent() {
           <Link href="/" className="p-2 rounded-lg hover:bg-gray-100 transition-colors" aria-label="Geri">
             <ArrowLeft size={18} style={{ color: 'var(--muted-fg)' }} />
           </Link>
-          <span className="font-semibold text-sm">Mobilya Görselleştirici</span>
+          <span className="font-semibold text-sm" style={{ color: 'var(--foreground)' }}>Mobilya Gorsellestiric</span>
         </header>
         <main className="flex-1 flex flex-col items-center justify-center px-6 py-16">
-          <h2 className="text-2xl font-bold mb-2 text-center">Ne yapmak istersiniz?</h2>
-          <p className="text-sm mb-10 text-center" style={{ color: 'var(--muted-fg)' }}>
-            Bir işlev seçin ve başlayın.
+          <h2
+            className="text-3xl font-bold mb-2 text-center"
+            style={{ fontFamily: 'var(--font-playfair, Georgia, serif)', color: 'var(--foreground)' }}
+          >
+            Ne yapmak istersiniz?
+          </h2>
+          <p className="text-sm mb-12 text-center" style={{ color: 'var(--muted-fg)' }}>
+            Bir islev secin ve baslayin.
           </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-4xl">
-            <ModeCard href="/app/furnish" icon={<Sofa size={32} style={{ color: 'var(--accent)' }} />} title="Odamı Sen Yap" subtitle="AI ile döşe" description="Boş odanı yükle, istediğin mobilyaları seç — AI hepsini iç mimar gibi yerleştirsin." steps={['Boş oda fotoğrafı yükle', 'Mobilyaları seç (max 12)', 'AI iç mimar gibi yerleştirir', 'İndir & paylaş']} />
-            <ModeCard href="/app/replace" icon={<Replace size={32} style={{ color: 'var(--accent)' }} />} title="Mobilya Değiştir" subtitle="Dolu odada" description="Odandaki bir mobilyaya tıkla, listeden yenisini seç — sadece o mobilya değişir." steps={['Oda fotoğrafı yükle', 'Değiştirmek istediğine tıkla', 'Yeni mobilyayı seç', 'AI değişikliği uygular']} />
-            <ModeCard href="/app/design" icon={<Wand2 size={32} style={{ color: 'var(--accent)' }} />} title="Baştan Dizayn Et" subtitle="Stil seç" description="Boş oda yükle, 6 farklı tarzdan birini seç — AI odayı baştan döşesin." steps={['Boş oda fotoğrafı yükle', 'Dekorasyon stili seç', 'AI odayı tamamen döşer']} />
-            <ModeCard href="/app/empty" icon={<Trash2 size={32} style={{ color: 'var(--accent)' }} />} title="Odayı Boşalt" subtitle="Eşyaları kaldır" description="Dolu odayı yükle — AI tüm mobilya ve eşyaları kaldırır, satışa hazır boş oda gösterir." steps={['Dolu oda fotoğrafı yükle', 'AI tüm eşyaları kaldırır', 'Temiz boş oda indir']} />
-            <ModeCard href="/app/mockup" icon={<Sparkles size={32} style={{ color: 'var(--accent)' }} />} title="Mockup Oluştur" subtitle="Yaşam stili görseli" description="Ürün fotoğrafı yükle — AI 4 farklı oda ortamında yaşam stili mockup görseli oluştursun." steps={['Ürün fotoğrafı yükle', 'Ürün adını gir', 'AI 4 sahne üretir', 'İndir & paylaş']} />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 w-full max-w-4xl">
+            <ModeCard href="/app/furnish" icon={<Sofa size={28} style={{ color: 'var(--accent)' }} />} title="Odami Sen Yap" subtitle="AI ile dose" description="Bos odani yukle, istedigin mobilyalari sec — AI hepsini ic mimar gibi yerlestirsin." />
+            <ModeCard href="/app/replace" icon={<Replace size={28} style={{ color: 'var(--accent)' }} />} title="Mobilya Degistir" subtitle="Dolu odada" description="Odandaki bir mobilyaya tikla, listeden yenisini sec — sadece o mobilya degisir." />
+            <ModeCard href="/app/design" icon={<Wand2 size={28} style={{ color: 'var(--accent)' }} />} title="Bastan Dizayn Et" subtitle="Stil sec" description="Bos oda yukle, 6 farkli tarzdan birini sec — AI odayi bastan doser." />
+            <ModeCard href="/app/empty" icon={<Trash2 size={28} style={{ color: 'var(--accent)' }} />} title="Odayi Bosalt" subtitle="Esyalari kaldir" description="Dolu odayi yukle — AI tum mobilya ve esyalari kaldirir, satisa hazir bos oda gosterir." />
+            <ModeCard href="/app/mockup" icon={<Sparkles size={28} style={{ color: 'var(--accent)' }} />} title="Mockup Olustur" subtitle="Yasam stili gorseli" description="Urun fotografini yukle — AI 4 farkli oda ortaminda yasam stili mockup gorseli olusturur." />
           </div>
         </main>
       </div>
@@ -160,16 +165,21 @@ function AppSelectorContent() {
         <Link href="/" className="p-2 rounded-lg hover:bg-gray-100 transition-colors" aria-label="Geri">
           <ArrowLeft size={18} style={{ color: 'var(--muted-fg)' }} />
         </Link>
-        <span className="font-semibold text-sm">Mobilya Görselleştirici</span>
+        <span className="font-semibold text-sm" style={{ color: 'var(--foreground)' }}>Mobilya Gorsellestiric</span>
       </header>
       <main className="flex-1 flex flex-col items-center justify-center px-6 py-16">
-        <h2 className="text-2xl font-bold mb-2 text-center">Marka Seçin</h2>
+        <h2
+          className="text-3xl font-bold mb-2 text-center"
+          style={{ fontFamily: 'var(--font-playfair, Georgia, serif)', color: 'var(--foreground)' }}
+        >
+          Marka Secin
+        </h2>
         <p className="text-sm mb-10 text-center" style={{ color: 'var(--muted-fg)' }}>
-          Hangi markanın ürünleriyle devam etmek istersiniz?
+          Hangi markanin urunleriyle devam etmek istersiniz?
         </p>
         {tenantsLoading ? (
           <div className="flex items-center gap-2" style={{ color: 'var(--muted-fg)' }}>
-            <Loader2 size={16} className="animate-spin" /> Yükleniyor...
+            <Loader2 size={16} className="animate-spin" /> Yukleniyor...
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 w-full max-w-3xl">
@@ -177,14 +187,18 @@ function AppSelectorContent() {
               <a
                 key={tenant.id}
                 href={`/app?brand=${tenant.slug}`}
-                className="group flex items-center gap-4 p-5 rounded-2xl transition-all hover:-translate-y-0.5 hover:shadow-lg"
-                style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+                className="group flex items-center gap-4 p-5 rounded-2xl transition-all hover:-translate-y-0.5"
+                style={{
+                  background: 'var(--card)',
+                  border: '1px solid var(--border)',
+                  boxShadow: 'var(--shadow-sm)',
+                }}
               >
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#F5EFE6' }}>
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'var(--accent-light)' }}>
                   <Building2 size={20} style={{ color: 'var(--accent)' }} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm truncate">{tenant.name}</p>
+                  <p className="font-semibold text-sm truncate" style={{ color: 'var(--foreground)' }}>{tenant.name}</p>
                 </div>
                 <ArrowRight size={14} className="flex-shrink-0 group-hover:translate-x-0.5 transition-transform" style={{ color: 'var(--muted-fg)' }} />
               </a>
@@ -204,36 +218,38 @@ export default function AppSelectorPage() {
   )
 }
 
-function ModeCard({ href, icon, title, subtitle, description, steps }: {
+function ModeCard({ href, icon, title, subtitle, description }: {
   href: string; icon: React.ReactNode; title: string; subtitle: string
-  description: string; steps: string[]
+  description: string
 }) {
   return (
     <Link
       href={href}
-      className="group block p-6 rounded-2xl transition-all hover:-translate-y-1 hover:shadow-xl"
-      style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+      className="group block p-7 rounded-2xl transition-all hover:-translate-y-1"
+      style={{
+        background: 'var(--card)',
+        border: '1px solid var(--border)',
+        boxShadow: 'var(--shadow-sm)',
+      }}
     >
-      <div className="mb-4">{icon}</div>
+      <div className="mb-5">{icon}</div>
       <div className="mb-1">
-        <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{ background: '#F5EFE6', color: 'var(--accent-dark)' }}>
+        <span
+          className="text-xs font-medium px-2 py-0.5 rounded-full"
+          style={{ background: 'var(--accent-light)', color: 'var(--accent-dark)' }}
+        >
           {subtitle}
         </span>
       </div>
-      <h3 className="font-bold text-lg mt-2 mb-2">{title}</h3>
-      <p className="text-sm mb-5 leading-relaxed" style={{ color: 'var(--muted-fg)' }}>{description}</p>
-      <ol className="space-y-1.5 mb-5">
-        {steps.map((s, i) => (
-          <li key={i} className="flex items-center gap-2 text-sm" style={{ color: 'var(--muted-fg)' }}>
-            <span className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" style={{ background: '#F5EFE6', color: 'var(--accent-dark)' }}>
-              {i + 1}
-            </span>
-            {s}
-          </li>
-        ))}
-      </ol>
+      <h3
+        className="font-semibold text-lg mt-3 mb-2"
+        style={{ color: 'var(--foreground)', fontFamily: 'var(--font-playfair, Georgia, serif)' }}
+      >
+        {title}
+      </h3>
+      <p className="text-sm mb-6 leading-relaxed" style={{ color: 'var(--muted-fg)' }}>{description}</p>
       <div className="flex items-center gap-1 text-sm font-medium" style={{ color: 'var(--accent-dark)' }}>
-        Başla <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+        Basla <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
       </div>
     </Link>
   )

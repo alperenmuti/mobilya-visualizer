@@ -25,9 +25,9 @@ export default function RoomTypeSelector({ value, onChange, disabled }: Props) {
           disabled={disabled}
           className="whitespace-nowrap px-2.5 py-1 rounded-full text-[11px] font-medium transition-all hover:scale-105 disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
           style={{
-            background: value === rt.id ? 'var(--accent)' : 'var(--card)',
+            background: value === rt.id ? 'var(--foreground)' : 'transparent',
             color: value === rt.id ? 'white' : 'var(--foreground)',
-            border: `1px solid ${value === rt.id ? 'var(--accent)' : 'var(--border)'}`,
+            border: `1px solid ${value === rt.id ? 'var(--foreground)' : 'var(--border-mid)'}`,
           }}
         >
           {rt.label}

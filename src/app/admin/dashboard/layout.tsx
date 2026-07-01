@@ -1,43 +1,64 @@
-import { cookies } from 'next/headers'
-import { redirect } from 'next/navigation'
+'use client'
+import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { LayoutDashboard, Package, LogOut, Building2 } from 'lucide-react'
 
-export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const cookieStore = await cookies()
-  if (!cookieStore.get('admin_session')?.value) redirect('/admin/login')
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname()
 
   return (
     <div className="min-h-screen flex" style={{ background: 'var(--background)' }}>
       {/* Sidebar */}
       <aside
-        className="w-56 flex-shrink-0 flex flex-col"
+        className="w-64 flex-shrink-0 flex flex-col"
         style={{ background: 'var(--card)', borderRight: '1px solid var(--border)' }}
       >
-        <div className="p-5 border-b" style={{ borderColor: 'var(--border)' }}>
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg flex items-center justify-center text-white text-xs font-bold" style={{ background: 'var(--accent)' }}>M</div>
+        {/* Brand area */}
+        <div className="px-6 py-7" style={{ borderBottom: '1px solid var(--border)' }}>
+          <div className="flex items-center gap-3">
+            <div
+              className="w-9 h-9 rounded-lg flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
+              style={{ background: 'var(--accent)' }}
+            >
+              M
+            </div>
             <div>
-              <p className="text-xs font-bold">Mobilya Admin</p>
-              <p className="text-xs" style={{ color: 'var(--muted-fg)' }}>Süperadmin</p>
+              <p className="text-sm font-bold" style={{ color: 'var(--foreground)' }}>Mobilya AI</p>
+              <p className="text-xs" style={{ color: 'var(--muted-fg)' }}>Superadmin</p>
             </div>
           </div>
         </div>
 
-        <nav className="flex-1 p-3 space-y-1">
-          <NavLink href="/admin/dashboard" icon={<LayoutDashboard size={15} />} label="Genel Bakış" />
-          <NavLink href="/admin/dashboard/tenants" icon={<Building2 size={15} />} label="İşletmeler" />
-          <NavLink href="/admin/dashboard/furniture" icon={<Package size={15} />} label="Mobilya Kataloğu" />
+        <nav className="flex-1 px-3 py-4 space-y-0.5">
+          <NavLink
+            href="/admin/dashboard"
+            icon={<LayoutDashboard size={15} />}
+            label="Genel Bakis"
+            active={pathname === '/admin/dashboard'}
+          />
+          <NavLink
+            href="/admin/dashboard/tenants"
+            icon={<Building2 size={15} />}
+            label="Isletmeler"
+            active={pathname?.startsWith('/admin/dashboard/tenants') ?? false}
+          />
+          <NavLink
+            href="/admin/dashboard/furniture"
+            icon={<Package size={15} />}
+            label="Mobilya Katalogu"
+            active={pathname?.startsWith('/admin/dashboard/furniture') ?? false}
+          />
         </nav>
 
-        <div className="p-3 border-t" style={{ borderColor: 'var(--border)' }}>
+        {/* Logout */}
+        <div className="p-3 mb-2">
           <Link
             href="/api/admin/logout"
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors hover:bg-gray-100 w-full"
+            className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm transition-colors w-full"
             style={{ color: 'var(--muted-fg)' }}
           >
             <LogOut size={14} />
-            Çıkış Yap
+            Cikis Yap
           </Link>
         </div>
       </aside>
@@ -47,14 +68,28 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   )
 }
 
-function NavLink({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) {
+function NavLink({
+  href,
+  icon,
+  label,
+  active,
+}: {
+  href: string
+  icon: React.ReactNode
+  label: string
+  active: boolean
+}) {
   return (
     <Link
       href={href}
-      className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-gray-50"
-      style={{ color: 'var(--foreground)' }}
+      className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors relative"
+      style={{
+        color: active ? 'var(--accent-dark)' : 'var(--foreground)',
+        background: active ? 'var(--accent-light)' : 'transparent',
+        borderLeft: active ? '4px solid var(--accent)' : '4px solid transparent',
+      }}
     >
-      <span style={{ color: 'var(--muted-fg)' }}>{icon}</span>
+      <span style={{ color: active ? 'var(--accent)' : 'var(--muted-fg)' }}>{icon}</span>
       {label}
     </Link>
   )

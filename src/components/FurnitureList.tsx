@@ -18,13 +18,13 @@ interface Props {
 
 export default function FurnitureList({ items, loading, selected, onSelect, multiSelect, selectedIds = [], onToggle }: Props) {
   const [search, setSearch] = useState('')
-  const [activeCategory, setActiveCategory] = useState('Tümü')
+  const [activeCategory, setActiveCategory] = useState('Tumu')
 
-  const categories = ['Tümü', ...Array.from(new Set(items.map(i => i.category).filter(Boolean) as string[]))]
+  const categories = ['Tumu', ...Array.from(new Set(items.map(i => i.category).filter(Boolean) as string[]))]
 
   const filtered = items.filter(item => {
     const matchSearch = item.name.toLowerCase().includes(search.toLowerCase())
-    const matchCat = activeCategory === 'Tümü' || item.category === activeCategory
+    const matchCat = activeCategory === 'Tumu' || item.category === activeCategory
     return matchSearch && matchCat
   })
 
@@ -33,7 +33,7 @@ export default function FurnitureList({ items, loading, selected, onSelect, mult
       <div className="flex flex-col h-full p-4 gap-3">
         {Array.from({ length: 6 }).map((_, i) => (
           <div key={i} className="flex gap-3 p-3 rounded-xl" style={{ border: '1px solid var(--border)' }}>
-            <div className="skeleton w-16 h-16 rounded-lg flex-shrink-0" />
+            <div className="skeleton w-[72px] h-[72px] rounded-lg flex-shrink-0" />
             <div className="flex-1 space-y-2 py-1">
               <div className="skeleton h-3 rounded w-3/4" />
               <div className="skeleton h-2.5 rounded w-1/2" />
@@ -74,13 +74,11 @@ export default function FurnitureList({ items, loading, selected, onSelect, mult
               onClick={() => setActiveCategory(cat)}
               className={cn(
                 'flex-shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors',
-                activeCategory === cat
-                  ? 'text-white'
-                  : 'hover:bg-gray-100'
+                activeCategory === cat ? 'text-white' : ''
               )}
               style={activeCategory === cat
-                ? { background: 'var(--accent)', color: 'white' }
-                : { background: 'var(--muted)', color: 'var(--muted-fg)', border: '1px solid var(--border)' }
+                ? { background: 'var(--foreground)', color: 'white' }
+                : { background: 'transparent', color: 'var(--muted-fg)', border: '1px solid var(--border-mid)' }
               }
             >
               {cat}
@@ -91,10 +89,10 @@ export default function FurnitureList({ items, loading, selected, onSelect, mult
 
       {/* Count / selection badge */}
       <div className="px-4 pb-2 flex items-center gap-2">
-        <span className="text-xs" style={{ color: 'var(--muted-fg)' }}>{filtered.length} ürün</span>
+        <span className="text-xs" style={{ color: 'var(--muted-fg)' }}>{filtered.length} urun</span>
         {multiSelect && selectedIds.length > 0 && (
           <span className="text-xs font-semibold px-2 py-0.5 rounded-full text-white" style={{ background: 'var(--accent)' }}>
-            {selectedIds.length} seçili
+            {selectedIds.length} secili
           </span>
         )}
       </div>
@@ -103,7 +101,7 @@ export default function FurnitureList({ items, loading, selected, onSelect, mult
       <div className="flex-1 overflow-y-auto scrollbar-hide px-4 pb-4 space-y-2">
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
-            <p className="text-sm" style={{ color: 'var(--muted-fg)' }}>Ürün bulunamadı</p>
+            <p className="text-sm" style={{ color: 'var(--muted-fg)' }}>Urun bulunamadi</p>
           </div>
         ) : (
           filtered.map(item => {
@@ -116,17 +114,16 @@ export default function FurnitureList({ items, loading, selected, onSelect, mult
               onClick={() => multiSelect ? onToggle?.(item) : onSelect?.(item)}
               className={cn(
                 'w-full flex items-center gap-3 p-3 rounded-xl text-left transition-all hover:scale-[1.01]',
-                isActive ? 'ring-2' : ''
               )}
               style={{
-                background: isActive ? '#F5EFE6' : 'var(--card)',
-                border: `1px solid ${isActive ? 'var(--accent)' : 'var(--border)'}`,
-                '--tw-ring-color': 'var(--accent)',
-              } as React.CSSProperties}
+                background: isActive ? 'var(--accent-light)' : 'var(--card)',
+                border: isActive ? '1px solid var(--accent)' : '1px solid var(--border)',
+                borderLeft: isActive ? '3px solid var(--accent)' : '1px solid var(--border)',
+              }}
             >
               {/* Image */}
               <div
-                className="w-16 h-16 rounded-lg flex-shrink-0 overflow-hidden"
+                className="w-[72px] h-[72px] rounded-lg flex-shrink-0 overflow-hidden"
                 style={{ background: 'var(--muted)' }}
               >
                 {item.image_url ? (
@@ -138,18 +135,25 @@ export default function FurnitureList({ items, loading, selected, onSelect, mult
                     onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-lg">🪑</div>
+                  <div className="w-full h-full flex items-center justify-center text-lg" style={{ color: 'var(--muted-fg)' }}>
+                    +
+                  </div>
                 )}
               </div>
 
               {/* Info */}
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm truncate">{item.name}</p>
+                <p className="font-medium text-sm truncate" style={{ color: 'var(--foreground)' }}>{item.name}</p>
                 {item.category && (
-                  <p className="text-xs mt-0.5" style={{ color: 'var(--muted-fg)' }}>{item.category}</p>
+                  <p
+                    className="text-[10px] mt-0.5 uppercase tracking-wide font-medium"
+                    style={{ color: 'var(--muted-fg)' }}
+                  >
+                    {item.category}
+                  </p>
                 )}
                 {item.price && (
-                  <p className="text-xs font-semibold mt-1" style={{ color: 'var(--accent-dark)' }}>{item.price}</p>
+                  <p className="text-xs font-medium mt-1" style={{ color: 'var(--accent-dark)' }}>{item.price}</p>
                 )}
               </div>
 
@@ -162,7 +166,7 @@ export default function FurnitureList({ items, loading, selected, onSelect, mult
                     background: isActive ? 'var(--accent)' : 'transparent',
                   }}
                 >
-                  {isActive && <span className="text-white text-xs font-bold">✓</span>}
+                  {isActive && <span className="text-white text-xs font-bold">v</span>}
                 </div>
               ) : item.product_url ? (
                 <a

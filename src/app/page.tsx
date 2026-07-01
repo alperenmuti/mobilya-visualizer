@@ -1,96 +1,148 @@
 import Link from 'next/link'
-import { ArrowRight, Layers, Replace, Sparkles } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 
 export default function LandingPage() {
   return (
     <div className="min-h-screen flex flex-col" style={{ background: 'var(--background)' }}>
+      {/* Header */}
+      <header className="flex items-center justify-between px-8 py-5">
+        <div className="flex items-center gap-3">
+          <div
+            className="w-8 h-8 rounded flex items-center justify-center text-white text-sm font-bold"
+            style={{ background: 'var(--accent)' }}
+          >
+            M
+          </div>
+          <span className="text-sm font-semibold tracking-wide" style={{ color: 'var(--foreground)' }}>
+            Mobilya AI
+          </span>
+        </div>
+        <Link
+          href="/admin/login"
+          className="text-base transition-colors"
+          style={{ color: 'var(--border-mid)' }}
+          aria-label="Yönetici girisi"
+        >
+          ·
+        </Link>
+      </header>
+
       {/* Hero */}
       <main className="flex-1 flex flex-col items-center justify-center px-6 py-24 text-center">
         <div className="animate-fade-up">
-          <span
-            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium mb-6"
-            style={{ background: '#F5EFE6', color: 'var(--accent-dark)', border: '1px solid #E8D9C4' }}
-          >
-            <Sparkles size={12} />
-            Yapay Zeka Destekli Tasarım
-          </span>
+          {/* Eyebrow */}
+          <div className="flex items-center justify-center gap-4 mb-8">
+            <div className="h-px w-12 flex-shrink-0" style={{ background: 'var(--border-mid)' }} />
+            <span
+              className="text-xs font-medium tracking-widest uppercase"
+              style={{ color: 'var(--muted-fg)' }}
+            >
+              Yapay Zeka Destekli Tasarim
+            </span>
+            <div className="h-px w-12 flex-shrink-0" style={{ background: 'var(--border-mid)' }} />
+          </div>
 
           <h1
-            className="text-5xl md:text-6xl font-bold tracking-tight mb-6 leading-tight"
-            style={{ color: 'var(--foreground)' }}
+            className="text-5xl md:text-7xl font-bold tracking-tight mb-8 leading-tight"
+            style={{ color: 'var(--foreground)', fontFamily: 'var(--font-playfair, Georgia, serif)' }}
           >
-            Mobilyanızı Satın Almadan<br />
-            <span style={{ color: 'var(--accent)' }}>Odanızda Görün</span>
+            Mobilyanizi Satin Almadan
+            <br />
+            <span style={{ color: 'var(--accent)', fontStyle: 'italic' }}>Odanizda Gorun</span>
           </h1>
 
-          <p className="text-lg md:text-xl max-w-xl mx-auto mb-10" style={{ color: 'var(--muted-fg)' }}>
-            Boş odanıza mobilya ekleyin ya da mevcut mobilyanızın yerine başka birini deneyin.
-            Yapay zeka, seçtiğiniz mobilyayı doğru açı, renk ve ışıkla yerleştirir.
+          <p
+            className="text-lg md:text-xl max-w-lg mx-auto mb-12 leading-relaxed"
+            style={{ color: 'var(--muted-fg)' }}
+          >
+            Bos odaniza mobilya ekleyin ya da mevcut mobilyanizin yerine baskasinideneyin.
+            Yapay zeka sectiginiz mobilyayi dogru aci, renk ve isikla yerlestirir.
           </p>
 
           <Link
             href="/app"
-            className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl text-white font-semibold text-base transition-all hover:scale-105 active:scale-95 shadow-lg"
-            style={{ background: 'linear-gradient(135deg, #C4A882, #9A7E5C)', boxShadow: '0 8px 24px rgba(196,168,130,0.35)' }}
+            className="inline-flex items-center gap-2.5 px-8 py-4 rounded-full text-white font-semibold text-sm tracking-wide transition-all hover:scale-105 active:scale-95"
+            style={{
+              background: 'linear-gradient(135deg, var(--accent), var(--accent-dark))',
+              boxShadow: '0 8px 24px rgba(184,149,106,0.30)',
+            }}
           >
-            Deneyimi Başlat
-            <ArrowRight size={18} />
+            Deneyimi Baslt
+            <ArrowRight size={16} />
           </Link>
         </div>
 
-        {/* Feature cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-24 max-w-3xl w-full animate-fade-up" style={{ animationDelay: '0.15s' }}>
-          <FeatureCard
-            icon={<Layers size={24} style={{ color: 'var(--accent)' }} />}
-            title="Mobilya Yerleştir"
-            description="Boş odanızın fotoğrafını yükleyin, mobilya listesinden seçin ve tıkladığınız noktaya AI yerleştirsin."
+        {/* Feature strip — 3 numbered panels */}
+        <div
+          className="grid grid-cols-1 md:grid-cols-3 mt-28 w-full max-w-4xl animate-fade-up"
+          style={{ animationDelay: '0.15s', borderTop: '1px solid var(--border)' }}
+        >
+          <FeaturePanel
+            number="01"
+            title="Mobilya Yerlestir"
+            description="Bos odanizin fotografini yukleyin, mobilya listesinden secin ve AI isinizi yapar."
           />
-          <FeatureCard
-            icon={<Replace size={24} style={{ color: 'var(--accent)' }} />}
-            title="Mobilya Değiştir"
-            description="Dolu odanızdaki bir mobilyaya tıklayın, yerine koymak istediğinizi seçin — AI sadece o mobilyayı değiştirir."
+          <FeaturePanel
+            number="02"
+            title="Mobilya Degistir"
+            description="Dolu odadaki bir mobilyaya tiklayin, yerine koymayi istediginizi secin — AI sadece onu degistirir."
+            bordered
           />
-        </div>
-
-        {/* Decorative grid */}
-        <div className="mt-20 grid grid-cols-3 gap-3 opacity-40 max-w-xs">
-          {Array.from({ length: 9 }).map((_, i) => (
-            <div
-              key={i}
-              className="rounded-xl aspect-square"
-              style={{ background: i % 2 === 0 ? '#E8D9C4' : '#F0E8DC', height: 64 }}
-            />
-          ))}
+          <FeaturePanel
+            number="03"
+            title="Basan Dizayn Et"
+            description="Bos odanizi yukleyin, 6 farkli dekorasyon stilinden birini secin — AI odayi basi`ndan doser."
+          />
         </div>
       </main>
 
-      {/* Footer with hidden admin link */}
-      <footer className="py-6 text-center">
-        <p className="text-xs" style={{ color: '#D0CDC8' }}>
-          © 2025 Mobilya Görselleştirici
-          {' · '}
-          <Link
-            href="/admin/login"
-            className="hover:underline transition-colors"
-            style={{ color: '#D0CDC8' }}
-          >
-            ·
-          </Link>
+      {/* Footer */}
+      <footer className="flex items-center justify-between px-8 py-6" style={{ borderTop: '1px solid var(--border)' }}>
+        <p className="text-xs" style={{ color: 'var(--muted-fg)' }}>
+          &copy; 2025 Mobilya Gorsellestiric
         </p>
+        <Link href="/app/login" className="text-xs hover:underline transition-colors" style={{ color: 'var(--muted-fg)' }}>
+          Giris
+        </Link>
       </footer>
     </div>
   )
 }
 
-function FeatureCard({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
+function FeaturePanel({
+  number,
+  title,
+  description,
+  bordered,
+}: {
+  number: string
+  title: string
+  description: string
+  bordered?: boolean
+}) {
   return (
     <div
-      className="p-6 rounded-2xl text-left"
-      style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+      className="p-8 text-left"
+      style={{
+        borderLeft: bordered ? '1px solid var(--border)' : undefined,
+        borderRight: bordered ? '1px solid var(--border)' : undefined,
+      }}
     >
-      <div className="mb-3">{icon}</div>
-      <h3 className="font-semibold text-base mb-1.5">{title}</h3>
-      <p className="text-sm leading-relaxed" style={{ color: 'var(--muted-fg)' }}>{description}</p>
+      <span
+        className="block text-xs font-medium tracking-widest mb-5"
+        style={{ color: 'var(--accent)', fontFamily: 'var(--font-geist, sans-serif)' }}
+      >
+        {number}
+      </span>
+      <h3
+        className="text-lg font-semibold mb-3"
+        style={{ color: 'var(--foreground)', fontFamily: 'var(--font-playfair, Georgia, serif)' }}
+      >
+        {title}
+      </h3>
+      <p className="text-sm leading-relaxed" style={{ color: 'var(--muted-fg)' }}>
+        {description}
+      </p>
     </div>
   )
 }
