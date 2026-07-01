@@ -3,6 +3,254 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Eye, EyeOff, AlertCircle } from 'lucide-react'
 
+/* ─── SVG Room Illustrations ─────────────────────────────────────── */
+
+function EmptyRoom() {
+  return (
+    <svg viewBox="0 0 260 175" xmlns="http://www.w3.org/2000/svg" style={{ display: 'block', width: '100%', height: '100%' }}>
+      {/* Wall */}
+      <rect width="260" height="175" fill="#F5EDE0" />
+      {/* Floor */}
+      <rect y="124" width="260" height="51" fill="#E8DEC8" />
+      <line x1="0" y1="124" x2="260" y2="124" stroke="#D8CEB8" strokeWidth="1" />
+      {/* Baseboard */}
+      <rect y="121" width="260" height="3" fill="#E0D4BC" />
+      {/* Window */}
+      <rect x="88" y="18" width="84" height="62" rx="2" fill="#C8DEE8" />
+      <rect x="88" y="18" width="84" height="62" rx="2" fill="none" stroke="#C4B8A4" strokeWidth="2" />
+      <line x1="130" y1="18" x2="130" y2="80" stroke="#C4B8A4" strokeWidth="1.5" />
+      <line x1="88" y1="49" x2="172" y2="49" stroke="#C4B8A4" strokeWidth="1.5" />
+      {/* Window light on floor */}
+      <rect x="106" y="124" width="48" height="40" fill="#EFE4CC" opacity="0.45" />
+      {/* Corner shadow left */}
+      <rect width="18" height="175" fill="rgba(0,0,0,0.04)" />
+      {/* Corner shadow right */}
+      <rect x="242" width="18" height="175" fill="rgba(0,0,0,0.04)" />
+    </svg>
+  )
+}
+
+function SemiRoom() {
+  return (
+    <svg viewBox="0 0 260 175" xmlns="http://www.w3.org/2000/svg" style={{ display: 'block', width: '100%', height: '100%' }}>
+      {/* Wall */}
+      <rect width="260" height="175" fill="#F5EDE0" />
+      {/* Floor */}
+      <rect y="124" width="260" height="51" fill="#E8DEC8" />
+      <line x1="0" y1="124" x2="260" y2="124" stroke="#D8CEB8" strokeWidth="1" />
+      <rect y="121" width="260" height="3" fill="#E0D4BC" />
+      {/* Window */}
+      <rect x="88" y="18" width="84" height="62" rx="2" fill="#C8DEE8" />
+      <rect x="88" y="18" width="84" height="62" rx="2" fill="none" stroke="#C4B8A4" strokeWidth="2" />
+      <line x1="130" y1="18" x2="130" y2="80" stroke="#C4B8A4" strokeWidth="1.5" />
+      <line x1="88" y1="49" x2="172" y2="49" stroke="#C4B8A4" strokeWidth="1.5" />
+      <rect x="106" y="124" width="48" height="40" fill="#EFE4CC" opacity="0.45" />
+      <rect width="18" height="175" fill="rgba(0,0,0,0.04)" />
+      <rect x="242" width="18" height="175" fill="rgba(0,0,0,0.04)" />
+      {/* Rug */}
+      <ellipse cx="130" cy="138" rx="72" ry="10" fill="#C8A870" opacity="0.30" />
+      {/* Sofa back */}
+      <rect x="48" y="80" width="140" height="22" rx="5" fill="#9A7A52" />
+      {/* Sofa seat */}
+      <rect x="48" y="96" width="140" height="32" rx="5" fill="#875E3A" />
+      {/* Sofa arm left */}
+      <rect x="48" y="80" width="14" height="48" rx="4" fill="#9A7A52" />
+      {/* Sofa arm right */}
+      <rect x="174" y="80" width="14" height="48" rx="4" fill="#9A7A52" />
+      {/* Sofa legs */}
+      <rect x="58" y="125" width="8" height="9" rx="1" fill="#5C3A1E" />
+      <rect x="175" y="125" width="8" height="9" rx="1" fill="#5C3A1E" />
+      {/* Cushions */}
+      <rect x="64" y="99" width="34" height="22" rx="4" fill="#A07848" />
+      <rect x="103" y="99" width="34" height="22" rx="4" fill="#A07848" />
+      <rect x="142" y="99" width="28" height="22" rx="4" fill="#9A7040" />
+      {/* Throw */}
+      <rect x="68" y="84" width="18" height="14" rx="3" fill="#C4A882" />
+    </svg>
+  )
+}
+
+function FurnishedRoom() {
+  return (
+    <svg viewBox="0 0 260 175" xmlns="http://www.w3.org/2000/svg" style={{ display: 'block', width: '100%', height: '100%' }}>
+      {/* Wall */}
+      <rect width="260" height="175" fill="#F5EDE0" />
+      {/* Floor */}
+      <rect y="124" width="260" height="51" fill="#E8DEC8" />
+      <line x1="0" y1="124" x2="260" y2="124" stroke="#D8CEB8" strokeWidth="1" />
+      <rect y="121" width="260" height="3" fill="#E0D4BC" />
+      {/* Window */}
+      <rect x="88" y="18" width="84" height="62" rx="2" fill="#C8DEE8" />
+      <rect x="88" y="18" width="84" height="62" rx="2" fill="none" stroke="#C4B8A4" strokeWidth="2" />
+      <line x1="130" y1="18" x2="130" y2="80" stroke="#C4B8A4" strokeWidth="1.5" />
+      <line x1="88" y1="49" x2="172" y2="49" stroke="#C4B8A4" strokeWidth="1.5" />
+      <rect x="106" y="124" width="48" height="40" fill="#EFE4CC" opacity="0.45" />
+      <rect width="18" height="175" fill="rgba(0,0,0,0.04)" />
+      <rect x="242" width="18" height="175" fill="rgba(0,0,0,0.04)" />
+      {/* Wall art */}
+      <rect x="182" y="22" width="44" height="32" rx="3" fill="white" opacity="0.8" />
+      <rect x="185" y="25" width="38" height="26" rx="2" fill="#E8D4B8" opacity="0.6" />
+      <ellipse cx="204" cy="38" rx="10" ry="7" fill="#C4A882" opacity="0.5" />
+      {/* Small shelf bracket left */}
+      <rect x="22" y="48" width="36" height="4" rx="2" fill="#C4B4A0" />
+      <rect x="30" y="52" width="4" height="12" rx="1" fill="#C4B4A0" />
+      {/* Vase on shelf */}
+      <rect x="26" y="36" width="10" height="12" rx="3" fill="#9A8060" />
+      <ellipse cx="31" cy="36" rx="7" ry="3" fill="#8A7050" />
+      <line x1="31" y1="33" x2="28" y2="26" stroke="#5A7840" strokeWidth="1.5" />
+      <line x1="31" y1="33" x2="31" y2="24" stroke="#4A6830" strokeWidth="1.5" />
+      <line x1="31" y1="33" x2="34" y2="26" stroke="#5A7840" strokeWidth="1.5" />
+      <ellipse cx="28" cy="26" rx="4" ry="5" fill="#6A9050" />
+      <ellipse cx="31" cy="23" rx="4" ry="5" fill="#7AA060" />
+      <ellipse cx="34" cy="25" rx="3.5" ry="4.5" fill="#5A8040" />
+      {/* Rug */}
+      <ellipse cx="130" cy="138" rx="78" ry="10" fill="#C8A870" opacity="0.32" />
+      {/* Rug pattern lines */}
+      <ellipse cx="130" cy="138" rx="60" ry="7" fill="none" stroke="#B89860" strokeWidth="0.8" opacity="0.4" />
+      {/* Sofa back */}
+      <rect x="48" y="80" width="140" height="22" rx="5" fill="#9A7A52" />
+      {/* Sofa seat */}
+      <rect x="48" y="96" width="140" height="32" rx="5" fill="#875E3A" />
+      {/* Sofa arm left */}
+      <rect x="48" y="80" width="14" height="48" rx="4" fill="#9A7A52" />
+      {/* Sofa arm right */}
+      <rect x="174" y="80" width="14" height="48" rx="4" fill="#9A7A52" />
+      {/* Sofa legs */}
+      <rect x="58" y="125" width="8" height="9" rx="1" fill="#5C3A1E" />
+      <rect x="175" y="125" width="8" height="9" rx="1" fill="#5C3A1E" />
+      {/* Cushions */}
+      <rect x="64" y="99" width="34" height="22" rx="4" fill="#A07848" />
+      <rect x="103" y="99" width="34" height="22" rx="4" fill="#A07848" />
+      <rect x="142" y="99" width="28" height="22" rx="4" fill="#9A7040" />
+      {/* Throw */}
+      <rect x="68" y="84" width="18" height="14" rx="3" fill="#C4A882" />
+      {/* Coffee table top */}
+      <rect x="90" y="123" width="80" height="5" rx="2" fill="#6B4A28" />
+      {/* Coffee table legs */}
+      <rect x="96" y="128" width="4" height="8" rx="1" fill="#5C3A1E" />
+      <rect x="160" y="128" width="4" height="8" rx="1" fill="#5C3A1E" />
+      {/* Book on table */}
+      <rect x="107" y="118" width="26" height="5" rx="1" fill="#8B9B7E" />
+      <rect x="109" y="116" width="22" height="2" rx="1" fill="#7A8A6E" />
+      {/* Floor lamp */}
+      <rect x="226" y="36" width="3" height="90" fill="#7A5A38" />
+      <rect x="219" y="34" width="17" height="3" rx="1" fill="#7A5A38" />
+      <polygon points="219,35 236,35 233,22 222,22" fill="#F0E4C8" />
+      <ellipse cx="227" cy="22" rx="5" ry="3" fill="#E8D4A0" />
+      {/* Lamp glow on wall */}
+      <ellipse cx="227" cy="28" rx="22" ry="16" fill="#FFEAA0" opacity="0.10" />
+      {/* Plant pot left */}
+      <rect x="20" y="106" width="18" height="18" rx="3" fill="#8B6B42" />
+      <rect x="16" y="104" width="26" height="4" rx="2" fill="#9A7848" />
+      <ellipse cx="29" cy="100" rx="16" ry="13" fill="#4A7040" opacity="0.9" />
+      <ellipse cx="20" cy="106" rx="10" ry="9" fill="#5A8050" opacity="0.85" />
+      <ellipse cx="38" cy="104" rx="11" ry="9" fill="#3D6038" opacity="0.85" />
+      <ellipse cx="29" cy="95" rx="9" ry="8" fill="#5A8848" opacity="0.9" />
+    </svg>
+  )
+}
+
+/* ─── Stacked Room Cards Showcase ─────────────────────────────────── */
+
+function RoomShowcase() {
+  return (
+    <div className="relative flex items-center justify-center w-full flex-1">
+      <div style={{ position: 'relative', width: 270, height: 220 }}>
+
+        {/* Card 3 — back, empty room */}
+        <div style={{
+          position: 'absolute',
+          top: 32,
+          left: -10,
+          width: 248,
+          height: 168,
+          borderRadius: 14,
+          overflow: 'hidden',
+          transform: 'rotate(6deg)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.22)',
+          zIndex: 0,
+        }}>
+          <EmptyRoom />
+          <span style={{
+            position: 'absolute',
+            top: 10,
+            right: 10,
+            background: 'rgba(255,255,255,0.85)',
+            color: '#8A6842',
+            fontSize: 9,
+            fontWeight: 700,
+            letterSpacing: '0.1em',
+            textTransform: 'uppercase',
+            padding: '3px 8px',
+            borderRadius: 20,
+          }}>Önce</span>
+        </div>
+
+        {/* Card 2 — middle, sofa added */}
+        <div style={{
+          position: 'absolute',
+          top: 16,
+          left: 6,
+          width: 248,
+          height: 168,
+          borderRadius: 14,
+          overflow: 'hidden',
+          transform: 'rotate(-3deg)',
+          boxShadow: '0 10px 36px rgba(0,0,0,0.26)',
+          zIndex: 1,
+        }}>
+          <SemiRoom />
+          <span style={{
+            position: 'absolute',
+            top: 10,
+            right: 10,
+            background: 'rgba(255,255,255,0.85)',
+            color: '#8A6842',
+            fontSize: 9,
+            fontWeight: 700,
+            letterSpacing: '0.1em',
+            textTransform: 'uppercase',
+            padding: '3px 8px',
+            borderRadius: 20,
+          }}>İşlemde</span>
+        </div>
+
+        {/* Card 1 — front, fully furnished */}
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 12,
+          width: 248,
+          height: 168,
+          borderRadius: 14,
+          overflow: 'hidden',
+          transform: 'rotate(0deg)',
+          boxShadow: '0 12px 44px rgba(0,0,0,0.32)',
+          zIndex: 2,
+        }}>
+          <FurnishedRoom />
+          <span style={{
+            position: 'absolute',
+            top: 10,
+            right: 10,
+            background: 'rgba(255,255,255,0.92)',
+            color: '#5C3A1E',
+            fontSize: 9,
+            fontWeight: 700,
+            letterSpacing: '0.1em',
+            textTransform: 'uppercase',
+            padding: '3px 8px',
+            borderRadius: 20,
+          }}>Sonra</span>
+        </div>
+
+      </div>
+    </div>
+  )
+}
+
+/* ─── Page ─────────────────────────────────────────────────────────── */
+
 export default function TenantLoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -32,15 +280,14 @@ export default function TenantLoginPage() {
 
   return (
     <div className="min-h-screen flex" style={{ background: 'var(--background)' }}>
+
       {/* Left decorative panel */}
       <div
-        className="hidden md:flex md:w-2/5 flex-col justify-between p-12"
-        style={{
-          background: 'linear-gradient(160deg, var(--accent-dark) 0%, #5C3D20 100%)',
-        }}
+        className="hidden md:flex md:w-2/5 flex-col py-12 px-10"
+        style={{ background: 'linear-gradient(160deg, var(--accent-dark) 0%, #5C3D20 100%)' }}
       >
         {/* Logo */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-shrink-0">
           <div
             className="w-8 h-8 rounded flex items-center justify-center text-white text-sm font-bold"
             style={{ background: 'rgba(255,255,255,0.15)' }}
@@ -52,16 +299,39 @@ export default function TenantLoginPage() {
           </span>
         </div>
 
-        {/* Quote */}
-        <div>
-          <div className="h-px mb-6" style={{ background: 'rgba(255,255,255,0.2)' }} />
+        {/* Room showcase */}
+        <RoomShowcase />
+
+        {/* Caption + quote */}
+        <div className="flex-shrink-0">
+          {/* Step labels */}
+          <div className="flex items-center gap-3 mb-5">
+            {['Boş oda', 'Mobilya ekleniyor', 'Döşenmiş oda'].map((label, i) => (
+              <div key={i} className="flex items-center gap-1.5">
+                <span style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: '50%',
+                  background: i === 2 ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.35)',
+                  display: 'inline-block',
+                  flexShrink: 0,
+                }} />
+                <span className="text-xs" style={{ color: i === 2 ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.4)', whiteSpace: 'nowrap' }}>
+                  {label}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <div className="h-px mb-5" style={{ background: 'rgba(255,255,255,0.15)' }} />
+
           <p
-            className="text-white text-xl leading-relaxed mb-4"
-            style={{ fontFamily: 'var(--font-playfair, Georgia, serif)', fontStyle: 'italic', opacity: 0.9 }}
+            className="text-white leading-relaxed mb-3"
+            style={{ fontFamily: 'var(--font-playfair, Georgia, serif)', fontStyle: 'italic', opacity: 0.85, fontSize: 17 }}
           >
             &ldquo;Mobilyanızı satın almadan önce odanızda görün.&rdquo;
           </p>
-          <p className="text-sm" style={{ color: 'rgba(255,255,255,0.55)' }}>
+          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.45)' }}>
             Yapay zeka destekli iç tasarım
           </p>
         </div>
@@ -72,10 +342,7 @@ export default function TenantLoginPage() {
         <div className="w-full max-w-sm">
           <h1
             className="text-3xl font-bold mb-2"
-            style={{
-              color: 'var(--foreground)',
-              fontFamily: 'var(--font-playfair, Georgia, serif)',
-            }}
+            style={{ color: 'var(--foreground)', fontFamily: 'var(--font-playfair, Georgia, serif)' }}
           >
             Hoş Geldiniz
           </h1>
@@ -97,11 +364,7 @@ export default function TenantLoginPage() {
                 onChange={e => setEmail(e.target.value)}
                 placeholder="firma@example.com" required autoFocus
                 className="w-full px-4 py-3 text-sm rounded-xl outline-none transition-colors"
-                style={{
-                  background: 'var(--card)',
-                  border: '1px solid var(--border)',
-                  color: 'var(--foreground)',
-                }}
+                style={{ background: 'var(--card)', border: '1px solid var(--border)', color: 'var(--foreground)' }}
               />
             </div>
 
@@ -111,7 +374,7 @@ export default function TenantLoginPage() {
                 htmlFor="password"
                 style={{ color: 'var(--foreground)' }}
               >
-                Sifre
+                Şifre
               </label>
               <div className="relative">
                 <input
@@ -119,11 +382,7 @@ export default function TenantLoginPage() {
                   onChange={e => setPassword(e.target.value)}
                   placeholder="••••••••" required
                   className="w-full px-4 py-3 text-sm rounded-xl outline-none pr-11 transition-colors"
-                  style={{
-                    background: 'var(--card)',
-                    border: '1px solid var(--border)',
-                    color: 'var(--foreground)',
-                  }}
+                  style={{ background: 'var(--card)', border: '1px solid var(--border)', color: 'var(--foreground)' }}
                 />
                 <button
                   type="button" onClick={() => setShowPw(v => !v)}
@@ -136,14 +395,14 @@ export default function TenantLoginPage() {
             </div>
 
             {error && (
-              <p className="flex items-center gap-1.5 text-xs" style={{ color: '#DC2626' }}>
-                <AlertCircle size={13} /> {error}
+              <p className="flex items-center gap-2 text-xs py-3 px-4 rounded-xl" style={{ background: '#FEF2F2', color: '#DC2626' }}>
+                <AlertCircle size={13} className="flex-shrink-0" /> {error}
               </p>
             )}
 
             <button
               type="submit" disabled={loading}
-              className="w-full py-3.5 rounded-full text-sm font-semibold text-white disabled:opacity-60 transition-all hover:opacity-90"
+              className="w-full py-3.5 rounded-full text-sm font-semibold text-white disabled:opacity-60 transition-all hover:opacity-90 mt-2"
               style={{
                 background: 'linear-gradient(135deg, var(--accent), var(--accent-dark))',
                 boxShadow: '0 8px 24px rgba(184,149,106,0.25)',
